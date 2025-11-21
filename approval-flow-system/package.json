@@ -1,0 +1,22 @@
+{
+  "name": "approval-flow-system",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Approval flow system monorepo (API + mock + infra).",
+  "workspaces": [
+    "apps/api",
+    "apps/mock"
+  ],
+  "scripts": {
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces",
+    "build": "npm run build --workspaces",
+    "ci": "npm run lint && npm run test && npm run build",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate dev",
+    "contract-test": "node scripts/contract-test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
