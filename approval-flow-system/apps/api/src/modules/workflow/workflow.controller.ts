@@ -18,16 +18,21 @@ import { ActionWorkflowDto } from "./dto/action-workflow.dto";
 import { ListWorkflowQueryDto } from "./dto/list-workflow.dto";
 import { CreateAttachmentDto } from "./dto/create-attachment.dto";
 import { WorkflowRole, WorkflowRoleEnum } from "./workflow.constants";
+import { WorkflowShortLinkService } from "./workflow.shortlink";
 import {
   ExportFormatEnum,
   ExportWorkflowQueryDto,
 } from "./dto/export-workflow.dto";
 import { Response } from "express";
+import { ShortlinkActionDto } from "./dto/shortlink-action.dto";
 
 @ApiTags("workflows")
 @Controller("workflows")
 export class WorkflowController {
-  constructor(private readonly workflowService: WorkflowService) {}
+  constructor(
+    private readonly workflowService: WorkflowService,
+    private readonly shortLinkService: WorkflowShortLinkService,
+  ) {}
 
   private resolveRole(headerRole?: string): WorkflowRole | undefined {
     if (!headerRole) return undefined;
@@ -168,5 +173,17 @@ export class WorkflowController {
   @ApiBody({ type: CreateAttachmentDto })
   addAttachment(@Param("id") id: string, @Body() dto: CreateAttachmentDto) {
     return this.workflowService.addAttachment(id, dto);
+  }
+
+  @Post("shortlink/actions")
+  @ApiBody({ type: ShortlinkActionDto })
+  async actViaShortlink(@Body() dto: ShortlinkActionDto) {
+    const payload = this.shortLinkService.verify(dto.token);
+    return this.workflowService.act(payload.workflowId, {
+      action: payload.action,
+      role: payload.role,
+      comment: dto.comment,
+      actorCode: undefined, // 短链模式不携带用户上下文，后续接入企业微信后替换
+    } as any);
   }
 }
