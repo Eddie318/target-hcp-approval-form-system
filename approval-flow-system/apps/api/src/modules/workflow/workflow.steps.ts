@@ -1,9 +1,21 @@
-import { WorkflowRoleEnum, WorkflowTypeEnum } from "./workflow.constants";
+import {
+  WorkflowRoleEnum,
+  WorkflowRole,
+  WorkflowTypeEnum,
+  WorkflowType,
+} from "./workflow.constants";
 
-type StepDef = { sequence: number; role: WorkflowRoleEnum };
+type WorkflowTypeValue =
+  | (typeof WorkflowTypeEnum)[keyof typeof WorkflowTypeEnum]
+  | WorkflowType;
+type WorkflowRoleValue =
+  | (typeof WorkflowRoleEnum)[keyof typeof WorkflowRoleEnum]
+  | WorkflowRole;
+
+type StepDef = { sequence: number; role: WorkflowRoleValue };
 
 // 默认审批链，后续可按表单动态调整
-export const WorkflowChains: Record<WorkflowTypeEnum, StepDef[]> = {
+export const WorkflowChains: Record<WorkflowTypeValue, StepDef[]> = {
   [WorkflowTypeEnum.NEW_TARGET_HOSPITAL]: [
     { sequence: 1, role: WorkflowRoleEnum.DSM },
     { sequence: 2, role: WorkflowRoleEnum.RSM },
@@ -54,7 +66,7 @@ function needCDStep(payload?: any): boolean {
 }
 
 export function getDefaultSteps(
-  type: WorkflowTypeEnum,
+  type: WorkflowTypeValue,
   payload?: any,
 ): StepDef[] {
   const base = WorkflowChains[type] ? [...WorkflowChains[type]] : [];

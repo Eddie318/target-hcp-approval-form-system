@@ -13,6 +13,17 @@ describe("workflow validation", () => {
     ).not.toThrow();
   });
 
+  it("should allow sharePercent alias", () => {
+    expect(() =>
+      validatePayload(WorkflowTypeEnum.CANCEL_TARGET_HOSPITAL, {
+        distributions: [
+          { targetHospitalCode: "H1", sharePercent: 50 },
+          { targetHospitalCode: "H2", sharePercent: 50 },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
   it("should throw when cancel target hospital distributions missing", () => {
     expect(() =>
       validatePayload(WorkflowTypeEnum.CANCEL_TARGET_HOSPITAL, {

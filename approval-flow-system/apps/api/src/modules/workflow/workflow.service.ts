@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { CreateWorkflowDto } from "./dto/create-workflow.dto";
 import {
+  WorkflowAction,
   WorkflowActionEnum,
   WorkflowRole,
   WorkflowStatusEnum,
@@ -19,6 +20,18 @@ import { getDefaultSteps } from "./workflow.steps";
 import { WorkflowTypeEnum } from "./workflow.constants";
 import { validatePayload } from "./workflow.validation";
 import { WorkflowScopeService } from "./workflow.scope";
+import { ListWorkflowQueryDto } from "./dto/list-workflow.dto";
+import { CreateAttachmentDto } from "./dto/create-attachment.dto";
+
+function extractHospitalCode(payload: any): string | undefined {
+  if (!payload) return undefined;
+  return (
+    (payload as any).hospitalCode ||
+    (payload as any).hospital_code ||
+    (payload as any).hospital_code ||
+    undefined
+  );
+}
 
 @Injectable()
 export class WorkflowService {
@@ -27,9 +40,44 @@ export class WorkflowService {
     private readonly scopeService: WorkflowScopeService,
   ) {}
 
-  create(dto: CreateWorkflowDto) {
-    validatePayload(dto.type as WorkflowTypeEnum, dto.payload);
-    const steps = getDefaultSteps(dto.type as WorkflowTypeEnum, dto.payload);
+  async create(dto: CreateWorkflowDto) {
+    validatePayload(dto.type as any, dto.payload);
+    const steps = getDefaultSteps(dto.type as any, dto.payload);
+    const payloadHospital = extractHospitalCode(dto.payload);
+    if (dto.submittedBy && payloadHospital) {
+      await this.scopeService
+        .ensureHospitalInScope(dto.submittedBy, payloadHospital)
+        .catch(() => {
+          throw new BadRequestException("提交人无权操作该医院");
+        });
+    }
+    // 取消目标医院：提交人需具备分配医院的权限
+    if (
+      dto.type === WorkflowTypeEnum.CANCEL_TARGET_HOSPITAL &&
+      dto.submittedBy
+    ) {
+      const scope = await this.scopeService.getHospitalScopeByActor(
+        dto.submittedBy,
+      );
+      const distributions = dto.payload?.["distributions"] as
+        | { targetHospitalCode: string }[]
+        | undefined;
+      if (!scope.length) {
+        throw new BadRequestException("提交人无权分配任何医院");
+      }
+      if (distributions?.length) {
+        const outOfScope = distributions.filter(
+          (d) => !scope.includes(d.targetHospitalCode),
+        );
+        if (outOfScope.length) {
+          throw new BadRequestException(
+            `提交人无权分配医院：${outOfScope
+              .map((d) => d.targetHospitalCode)
+              .join(", ")}`,
+          );
+        }
+      }
+    }
     return this.prisma.workflow.create({
       data: {
         type: dto.type,
@@ -49,15 +97,27 @@ export class WorkflowService {
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.workflow.findUnique({
-      where: { id },
-      include: {
-        steps: { orderBy: { sequence: "asc" } },
-        actions: true,
-        files: true,
-      },
-    });
+  findOne(id: string, actorCode?: string) {
+    return this.prisma.workflow
+      .findFirstOrThrow({
+        where: { id },
+        include: {
+          steps: { orderBy: { sequence: "asc" } },
+          actions: { orderBy: { createdAt: "asc" } },
+          files: true,
+        },
+      })
+      .then((wf) => {
+        if (
+          wf.status === WorkflowStatusEnum.DRAFT &&
+          actorCode &&
+          wf.submittedBy &&
+          wf.submittedBy !== actorCode
+        ) {
+          throw new BadRequestException("草稿仅发起人可见");
+        }
+        return wf;
+      });
   }
 
   act(
@@ -85,10 +145,7 @@ export class WorkflowService {
 
       const wfType = current.type;
       if (dto.role) {
-        const allowed = allowedActions(
-          wfType as WorkflowType,
-          dto.role as WorkflowRole,
-        );
+        const allowed = allowedActions(wfType as WorkflowType, dto.role);
         if (!allowed.includes(dto.action)) {
           throw new BadRequestException(
             `Role ${dto.role} cannot perform ${dto.action} on ${wfType}`,
@@ -104,13 +161,12 @@ export class WorkflowService {
             s.status === WorkflowStatusEnum.IN_PROGRESS ||
             s.status === WorkflowStatusEnum.PENDING,
         ) || null;
-      if (
-        [
-          WorkflowActionEnum.APPROVE,
-          WorkflowActionEnum.REJECT,
-          WorkflowActionEnum.RETURN,
-        ].includes(dto.action)
-      ) {
+      const approvalActions: WorkflowAction[] = [
+        WorkflowActionEnum.APPROVE,
+        WorkflowActionEnum.REJECT,
+        WorkflowActionEnum.RETURN,
+      ];
+      if (approvalActions.includes(dto.action)) {
         if (!currentStep) {
           throw new BadRequestException("没有可审批的步骤");
         }
@@ -251,6 +307,37 @@ export class WorkflowService {
       });
 
       return updated;
+    });
+  }
+
+  list(query: ListWorkflowQueryDto) {
+    const where: any = {};
+    if (query.type) where.type = query.type;
+    if (query.status) where.status = query.status;
+    if (query.actorCode) {
+      where.OR = [
+        { submittedBy: query.actorCode },
+        { status: { not: WorkflowStatusEnum.DRAFT } },
+      ];
+    }
+    return this.prisma.workflow.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: {
+        steps: { orderBy: { sequence: "asc" } },
+      },
+    });
+  }
+
+  addAttachment(id: string, dto: CreateAttachmentDto) {
+    return this.prisma.attachment.create({
+      data: {
+        workflowId: id,
+        stepId: dto.stepId,
+        filename: dto.filename,
+        url: dto.url,
+        mimeType: dto.mimeType,
+      },
     });
   }
 }
