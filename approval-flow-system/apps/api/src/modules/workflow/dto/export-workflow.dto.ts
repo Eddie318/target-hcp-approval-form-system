@@ -1,6 +1,11 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { IsEnum, IsOptional, IsDateString } from "class-validator";
-import { WorkflowStatusEnum, WorkflowTypeEnum } from "../workflow.constants";
+import {
+  WorkflowStatus,
+  WorkflowStatusEnum,
+  WorkflowType,
+  WorkflowTypeEnum,
+} from "../workflow.constants";
 
 export enum ExportFormatEnum {
   CSV = "csv",
@@ -11,12 +16,12 @@ export class ExportWorkflowQueryDto {
   @ApiPropertyOptional({ enum: Object.values(WorkflowTypeEnum) })
   @IsOptional()
   @IsEnum(WorkflowTypeEnum)
-  type?: WorkflowTypeEnum;
+  type?: WorkflowType;
 
   @ApiPropertyOptional({ enum: Object.values(WorkflowStatusEnum) })
   @IsOptional()
   @IsEnum(WorkflowStatusEnum)
-  status?: WorkflowStatusEnum;
+  status?: WorkflowStatus;
 
   @ApiPropertyOptional({ description: "起始时间（ISO8601）" })
   @IsOptional()

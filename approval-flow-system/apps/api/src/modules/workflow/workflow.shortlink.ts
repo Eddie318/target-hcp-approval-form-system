@@ -1,12 +1,12 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import * as crypto from "crypto";
 import { PrismaService } from "../../prisma/prisma.service";
-import { WorkflowActionEnum, WorkflowRoleEnum } from "./workflow.constants";
+import { WorkflowAction, WorkflowRole } from "./workflow.constants";
 
 type ShortLinkPayload = {
   workflowId: string;
-  action: WorkflowActionEnum;
-  role?: WorkflowRoleEnum;
+  action: WorkflowAction;
+  role?: WorkflowRole;
   exp: number; // unix timestamp (seconds)
 };
 
@@ -48,8 +48,8 @@ export class WorkflowShortLinkService {
 
   generate(
     workflowId: string,
-    action: WorkflowActionEnum,
-    role?: WorkflowRoleEnum,
+    action: WorkflowAction,
+    role?: WorkflowRole,
     expiresInSeconds = 600,
   ) {
     const payload: ShortLinkPayload = {
