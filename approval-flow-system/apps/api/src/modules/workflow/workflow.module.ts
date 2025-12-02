@@ -3,6 +3,7 @@ import { WorkflowController } from "./workflow.controller";
 import { WorkflowService } from "./workflow.service";
 import { WorkflowScopeService } from "./workflow.scope";
 import { WorkflowAuditService } from "./workflow.audit";
+import { WorkflowShortLinkService } from "./workflow.shortlink";
 import { PrismaService } from "../../prisma/prisma.service";
 
 @Module({
@@ -11,6 +12,7 @@ import { PrismaService } from "../../prisma/prisma.service";
     WorkflowService,
     WorkflowScopeService,
     WorkflowAuditService,
+    WorkflowShortLinkService,
     PrismaService,
   ],
 })
