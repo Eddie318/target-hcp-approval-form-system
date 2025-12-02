@@ -77,12 +77,12 @@ function normalizeRows(rows) {
 
 function validate(rows) {
   for (const r of rows) {
-    if (!r.hospitalCode) throw new Error("缺少 关联医院code");
-    if (!r.salesType) throw new Error("缺少 销售类型");
-    if (r.salesType === "医院" && !r.mrCode) {
-      throw new Error(
-        `医院行缺少 MR 岗位号: ${r.hospitalCode} / ${r.orgId}`
-      );
+    if (!r.hospitalCode) r.__error = "缺少 关联医院code";
+    else if (!r.salesType) r.__error = "缺少 销售类型";
+    else if (r.salesType === "医院" && !r.mrCode) {
+      r.__error = `医院行缺少 MR 岗位号: ${r.hospitalCode} / ${r.orgId}`;
+    } else if (!["医院", "药店"].includes(r.salesType)) {
+      r.__error = `销售类型不合法: ${r.salesType}`;
     }
   }
 }
@@ -199,15 +199,29 @@ async function main() {
   );
 
   validate(rows);
-  console.log(`校验通过，记录数：${rows.length}`);
+  const validRows = rows.filter((r) => !r.__error);
+  const errors = rows
+    .filter((r) => r.__error)
+    .map((r) => ({ hospitalCode: r.hospitalCode, reason: r.__error }));
+
+  console.log(
+    `校验完成，记录数：${rows.length}，有效：${validRows.length}，错误：${errors.length}`
+  );
   logPayload.total = rows.length;
+  logPayload.failed = errors.length;
 
   console.log("清空相关表...");
   await clearTables();
 
   console.log("写入数据库...");
-  await importData(rows);
-  logPayload.success = rows.length;
+  await importData(validRows);
+  logPayload.success = validRows.length;
+  logPayload.message = errors.length
+    ? `有 ${errors.length} 条记录跳过`
+    : "OK";
+  if (errors.length) {
+    logPayload.errors = errors;
+  }
 
   console.log("导入完成");
 }

@@ -4,15 +4,23 @@ import { WorkflowService } from "./workflow.service";
 import { WorkflowScopeService } from "./workflow.scope";
 import { WorkflowAuditService } from "./workflow.audit";
 import { WorkflowShortLinkService } from "./workflow.shortlink";
+import { MockAuthGuard } from "./mock-auth.guard";
 import { PrismaService } from "../../prisma/prisma.service";
+import { ImportLogController } from "./import-log.controller";
+import { OperationLogController } from "./operation-log.controller";
 
 @Module({
-  controllers: [WorkflowController],
+  controllers: [
+    WorkflowController,
+    ImportLogController,
+    OperationLogController,
+  ],
   providers: [
     WorkflowService,
     WorkflowScopeService,
     WorkflowAuditService,
     WorkflowShortLinkService,
+    MockAuthGuard,
     PrismaService,
   ],
 })

@@ -75,7 +75,7 @@ function normalizeRows(rows) {
 function validate(rows) {
   rows.forEach((r, idx) => {
     if (!r.pharmacyCode) {
-      throw new Error(`第 ${idx + 1} 行缺少 院边店code`);
+      r.__error = `第 ${idx + 1} 行缺少 院边店code`;
     }
   });
 }
@@ -126,15 +126,28 @@ async function main() {
     (r) => Object.values(r).some((v) => v !== null && v !== "")
   );
   validate(rows);
-  console.log(`校验通过，记录数：${rows.length}`);
+  const validRows = rows.filter((r) => !r.__error);
+  const errors = rows
+    .filter((r) => r.__error)
+    .map((r) => ({ pharmacyCode: r.pharmacyCode, reason: r.__error }));
+  console.log(
+    `校验完成，记录数：${rows.length}，有效：${validRows.length}，错误：${errors.length}`
+  );
   logPayload.total = rows.length;
+  logPayload.failed = errors.length;
 
   console.log("清空药店白名单（entityType=PHARMACY）...");
   await clearPharmacyWhitelist();
 
   console.log("写入数据库...");
-  await importData(rows);
-  logPayload.success = rows.length;
+  await importData(validRows);
+  logPayload.success = validRows.length;
+  logPayload.message = errors.length
+    ? `有 ${errors.length} 条记录跳过`
+    : "OK";
+  if (errors.length) {
+    logPayload.errors = errors;
+  }
 
   console.log("导入完成");
 }

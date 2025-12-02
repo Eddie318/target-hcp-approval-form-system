@@ -3,8 +3,8 @@ import { IsEnum, IsOptional, IsDateString } from "class-validator";
 import { WorkflowStatusEnum, WorkflowTypeEnum } from "../workflow.constants";
 
 export enum ExportFormatEnum {
-  JSON = "json",
   CSV = "csv",
+  XLSX = "xlsx",
 }
 
 export class ExportWorkflowQueryDto {
@@ -30,7 +30,7 @@ export class ExportWorkflowQueryDto {
 
   @ApiPropertyOptional({
     enum: ExportFormatEnum,
-    description: "导出格式，默认 csv",
+    description: "导出格式，默认 csv，可选 xlsx",
   })
   @IsOptional()
   @IsEnum(ExportFormatEnum)

@@ -10,6 +10,7 @@ import {
   Headers,
   ForbiddenException,
   Res,
+  UseGuards,
 } from "@nestjs/common";
 import { ApiBody, ApiTags } from "@nestjs/swagger";
 import { CreateWorkflowDto } from "./dto/create-workflow.dto";
@@ -26,9 +27,12 @@ import {
 import { Response } from "express";
 import { ShortlinkActionDto } from "./dto/shortlink-action.dto";
 import { WorkflowAuditService } from "./workflow.audit";
+import { MockAuthGuard } from "./mock-auth.guard";
+import * as XLSX from "xlsx";
 
 @ApiTags("workflows")
 @Controller("workflows")
+@UseGuards(MockAuthGuard)
 export class WorkflowController {
   constructor(
     private readonly workflowService: WorkflowService,
@@ -124,42 +128,45 @@ export class WorkflowController {
       },
     });
     const format = query?.format ?? ExportFormatEnum.CSV;
-    if (format === ExportFormatEnum.JSON) {
-      return workflows;
+    const rows = workflows.map((wf) => ({
+      id: wf.id,
+      type: wf.type,
+      status: wf.status,
+      title: wf.title ?? "",
+      submittedBy: wf.submittedBy ?? "",
+      createdAt: wf.createdAt?.toISOString?.() ?? wf.createdAt,
+      updatedAt: wf.updatedAt?.toISOString?.() ?? wf.updatedAt,
+      payload: JSON.stringify(wf.payload ?? {}),
+      steps: JSON.stringify(wf.steps ?? []),
+      actions: JSON.stringify(wf.actions ?? []),
+      attachments: JSON.stringify(wf.files ?? []),
+    }));
+
+    if (format === ExportFormatEnum.XLSX) {
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, sheet, "workflows");
+      const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+      if (res) {
+        res.setHeader(
+          "Content-Type",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        );
+        res.setHeader(
+          "Content-Disposition",
+          'attachment; filename="workflows.xlsx"',
+        );
+      }
+      return buffer;
     }
+
     // 默认导出为 CSV
-    const header = [
-      "id",
-      "type",
-      "status",
-      "title",
-      "submittedBy",
-      "createdAt",
-      "updatedAt",
-      "payload",
-      "steps",
-      "actions",
-      "attachments",
-    ];
-    const lines = workflows.map((wf) => {
-      const safe = (v: any) =>
-        typeof v === "string"
-          ? `"${v.replace(/"/g, '""')}"`
-          : `"${JSON.stringify(v || "").replace(/"/g, '""')}"`;
-      return [
-        safe(wf.id),
-        safe(wf.type),
-        safe(wf.status),
-        safe(wf.title ?? ""),
-        safe(wf.submittedBy ?? ""),
-        safe(wf.createdAt?.toISOString?.() ?? wf.createdAt),
-        safe(wf.updatedAt?.toISOString?.() ?? wf.updatedAt),
-        safe(wf.payload ?? {}),
-        safe(wf.steps ?? []),
-        safe(wf.actions ?? []),
-        safe(wf.files ?? []),
-      ].join(",");
-    });
+    const header = Object.keys(rows[0] ?? {});
+    const safe = (v: any) =>
+      typeof v === "string"
+        ? `"${v.replace(/"/g, '""')}"`
+        : `"${JSON.stringify(v || "").replace(/"/g, '""')}"`;
+    const lines = rows.map((r) => header.map((key) => safe(r[key])).join(","));
     const csv = [header.join(","), ...lines].join("\n");
     if (res) {
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
