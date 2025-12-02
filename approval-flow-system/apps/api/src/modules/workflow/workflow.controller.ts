@@ -25,6 +25,7 @@ import {
 } from "./dto/export-workflow.dto";
 import { Response } from "express";
 import { ShortlinkActionDto } from "./dto/shortlink-action.dto";
+import { WorkflowAuditService } from "./workflow.audit";
 
 @ApiTags("workflows")
 @Controller("workflows")
@@ -32,6 +33,7 @@ export class WorkflowController {
   constructor(
     private readonly workflowService: WorkflowService,
     private readonly shortLinkService: WorkflowShortLinkService,
+    private readonly audit: WorkflowAuditService,
   ) {}
 
   private resolveRole(headerRole?: string): WorkflowRole | undefined {
@@ -179,6 +181,11 @@ export class WorkflowController {
   @ApiBody({ type: ShortlinkActionDto })
   async actViaShortlink(@Body() dto: ShortlinkActionDto) {
     const payload = this.shortLinkService.verify(dto.token);
+    await this.audit.log("SHORTLINK_USE", {
+      workflowId: payload.workflowId,
+      actorCode: null,
+      data: { action: payload.action, role: payload.role, via: "shortlink" },
+    });
     return this.workflowService.act(payload.workflowId, {
       action: payload.action,
       role: payload.role,
