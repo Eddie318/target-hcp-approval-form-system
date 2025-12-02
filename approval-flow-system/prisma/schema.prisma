@@ -225,3 +225,16 @@ model ImportLog {
   message   String?
   createdAt DateTime @default(now())
 }
+
+// 操作审计日志
+model OperationLog {
+  id         String   @id @default(cuid())
+  operation  String   // CREATE_WORKFLOW / APPLY_ACTION / EXPORT_WORKFLOW / SHORTLINK / IMPORT_* ...
+  actorCode  String?
+  workflowId String?
+  detail     Json?
+  createdAt  DateTime @default(now())
+
+  @@index([workflowId])
+  @@index([operation])
+}

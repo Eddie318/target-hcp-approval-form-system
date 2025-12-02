@@ -7,13 +7,12 @@ export class WorkflowAuditService {
 
   async log(operation: string, payload: Record<string, any>) {
     try {
-      await this.prisma.workflowAction.create({
+      await this.prisma.operationLog.create({
         data: {
-          workflowId: payload.workflowId ?? "AUDIT",
-          action: "APPROVE" as any, // 占位，避免额外表；若后续单独表，再迁移
+          operation,
+          workflowId: payload.workflowId ?? null,
           actorCode: payload.actorCode ?? null,
-          comment: `[AUDIT:${operation}] ${payload.comment ?? ""}`,
-          payload: payload.data ?? {},
+          detail: payload.data ?? {},
         },
       });
     } catch (e) {
