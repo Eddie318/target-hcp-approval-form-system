@@ -187,6 +187,7 @@ async function main() {
     success: 0,
     failed: 0,
     message: "",
+    detail: [],
   };
   if (!fs.existsSync(filePath)) {
     throw new Error(`文件不存在: ${filePath}`);
@@ -220,7 +221,7 @@ async function main() {
     ? `有 ${errors.length} 条记录跳过`
     : "OK";
   if (errors.length) {
-    logPayload.errors = errors;
+    logPayload.detail = errors;
   }
 
   console.log("导入完成");

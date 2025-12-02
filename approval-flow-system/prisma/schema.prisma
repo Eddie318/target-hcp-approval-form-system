@@ -223,6 +223,7 @@ model ImportLog {
   success   Int
   failed    Int
   message   String?
+  detail    Json?
   createdAt DateTime @default(now())
 }
 
@@ -233,8 +234,10 @@ model OperationLog {
   actorCode  String?
   workflowId String?
   detail     Json?
+  tokenHash  String?
   createdAt  DateTime @default(now())
 
   @@index([workflowId])
   @@index([operation])
+  @@index([tokenHash])
 }

@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import * as crypto from "crypto";
+import { PrismaService } from "../../prisma/prisma.service";
 import { WorkflowActionEnum, WorkflowRoleEnum } from "./workflow.constants";
 
 type ShortLinkPayload = {
@@ -43,6 +44,8 @@ export class WorkflowShortLinkService {
   private readonly key =
     process.env.SHORTLINK_SIGN_KEY || "dev-shortlink-sign-key";
 
+  constructor(private readonly prisma: PrismaService) {}
+
   generate(
     workflowId: string,
     action: WorkflowActionEnum,
@@ -58,7 +61,15 @@ export class WorkflowShortLinkService {
     return signPayload(payload, this.key);
   }
 
-  verify(token: string) {
-    return verifyToken(token, this.key);
+  async verify(token: string) {
+    const payload = verifyToken(token, this.key);
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const used = await this.prisma.operationLog.findFirst({
+      where: { operation: "SHORTLINK_USE", tokenHash },
+    });
+    if (used) {
+      throw new UnauthorizedException("短链已使用或失效");
+    }
+    return { ...payload, tokenHash };
   }
 }

@@ -187,10 +187,11 @@ export class WorkflowController {
   @Post("shortlink/actions")
   @ApiBody({ type: ShortlinkActionDto })
   async actViaShortlink(@Body() dto: ShortlinkActionDto) {
-    const payload = this.shortLinkService.verify(dto.token);
+    const payload = await this.shortLinkService.verify(dto.token);
     await this.audit.log("SHORTLINK_USE", {
       workflowId: payload.workflowId,
       actorCode: null,
+      tokenHash: payload.tokenHash,
       data: { action: payload.action, role: payload.role, via: "shortlink" },
     });
     return this.workflowService.act(payload.workflowId, {
