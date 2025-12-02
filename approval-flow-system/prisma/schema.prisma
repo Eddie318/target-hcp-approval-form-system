@@ -213,3 +213,15 @@ model Attachment {
 
   @@index([workflowId])
 }
+
+// 导入日志
+model ImportLog {
+  id        String   @id @default(cuid())
+  source    String   // assignments / pharmacy-whitelist
+  fileName  String?
+  total     Int
+  success   Int
+  failed    Int
+  message   String?
+  createdAt DateTime @default(now())
+}

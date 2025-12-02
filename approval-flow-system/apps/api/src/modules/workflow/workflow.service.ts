@@ -346,10 +346,32 @@ export class WorkflowService {
     });
   }
 
-  exportAll(params?: { actorCode?: string; role?: WorkflowRole }) {
+  exportAll(params?: {
+    actorCode?: string;
+    role?: WorkflowRole;
+    filters?: {
+      type?: WorkflowType;
+      status?: WorkflowStatus;
+      createdFrom?: string;
+      createdTo?: string;
+    };
+  }) {
     // 权限已在 controller 判定；此处返回全量字段，后续可加筛选/脱敏
+    const where: any = {};
+    if (params?.filters?.type) where.type = params.filters.type;
+    if (params?.filters?.status) where.status = params.filters.status;
+    if (params?.filters?.createdFrom || params?.filters?.createdTo) {
+      where.createdAt = {};
+      if (params.filters.createdFrom) {
+        where.createdAt.gte = new Date(params.filters.createdFrom);
+      }
+      if (params.filters.createdTo) {
+        where.createdAt.lte = new Date(params.filters.createdTo);
+      }
+    }
     return this.prisma.workflow
       .findMany({
+        where,
         orderBy: { createdAt: "desc" },
         include: {
           steps: { orderBy: { sequence: "asc" } },

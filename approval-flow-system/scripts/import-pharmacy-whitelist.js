@@ -108,6 +108,14 @@ async function main() {
   const arg = process.argv.find((a) => a.startsWith("--file="));
   const file = arg ? arg.split("=")[1] : "药店白名单Sample.csv";
   const filePath = path.resolve(process.cwd(), file);
+  let logPayload = {
+    source: "pharmacy-whitelist",
+    fileName: path.basename(filePath),
+    total: 0,
+    success: 0,
+    failed: 0,
+    message: "",
+  };
   if (!fs.existsSync(filePath)) {
     throw new Error(`文件不存在: ${filePath}`);
   }
@@ -119,21 +127,33 @@ async function main() {
   );
   validate(rows);
   console.log(`校验通过，记录数：${rows.length}`);
+  logPayload.total = rows.length;
 
   console.log("清空药店白名单（entityType=PHARMACY）...");
   await clearPharmacyWhitelist();
 
   console.log("写入数据库...");
   await importData(rows);
+  logPayload.success = rows.length;
 
   console.log("导入完成");
 }
 
 main()
-  .catch((err) => {
+  .catch(async (err) => {
     console.error(err);
+    logPayload.failed = logPayload.total - logPayload.success;
+    logPayload.message = err?.message ?? String(err);
+    await prisma.importLog
+      .create({ data: logPayload })
+      .catch(() => console.error("记录导入日志失败"));
     process.exit(1);
   })
   .finally(async () => {
+    logPayload.failed = logPayload.total - logPayload.success;
+    if (!logPayload.message) logPayload.message = "OK";
+    await prisma.importLog
+      .create({ data: logPayload })
+      .catch(() => console.error("记录导入日志失败"));
     await prisma.$disconnect();
   });

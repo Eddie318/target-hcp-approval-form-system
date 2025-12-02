@@ -109,6 +109,12 @@ export class WorkflowController {
     const workflows = await this.workflowService.exportAll({
       actorCode,
       role,
+      filters: {
+        type: query?.type,
+        status: query?.status,
+        createdFrom: query?.createdFrom,
+        createdTo: query?.createdTo,
+      },
     });
     const format = query?.format ?? ExportFormatEnum.CSV;
     if (format === ExportFormatEnum.JSON) {
