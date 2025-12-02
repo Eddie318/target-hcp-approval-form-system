@@ -22,6 +22,7 @@ import { validatePayload } from "./workflow.validation";
 import { WorkflowScopeService } from "./workflow.scope";
 import { ListWorkflowQueryDto } from "./dto/list-workflow.dto";
 import { CreateAttachmentDto } from "./dto/create-attachment.dto";
+import { WorkflowAuditService } from "./workflow.audit";
 
 function extractHospitalCode(payload: any): string | undefined {
   if (!payload) return undefined;
@@ -38,6 +39,7 @@ export class WorkflowService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scopeService: WorkflowScopeService,
+    private readonly audit: WorkflowAuditService,
   ) {}
 
   async create(dto: CreateWorkflowDto) {
@@ -78,23 +80,32 @@ export class WorkflowService {
         }
       }
     }
-    return this.prisma.workflow.create({
-      data: {
-        type: dto.type,
-        status: WorkflowStatusEnum.DRAFT,
-        title: dto.title ?? "",
-        payload: (dto.payload ?? {}) as Prisma.InputJsonValue,
-        submittedBy: dto.submittedBy,
-        steps: {
-          create: steps.map((s) => ({
-            sequence: s.sequence,
-            role: s.role as any as WorkflowRole,
-            status: WorkflowStatusEnum.PENDING,
-          })),
+    return this.prisma.workflow
+      .create({
+        data: {
+          type: dto.type,
+          status: WorkflowStatusEnum.DRAFT,
+          title: dto.title ?? "",
+          payload: (dto.payload ?? {}) as Prisma.InputJsonValue,
+          submittedBy: dto.submittedBy,
+          steps: {
+            create: steps.map((s) => ({
+              sequence: s.sequence,
+              role: s.role as any as WorkflowRole,
+              status: WorkflowStatusEnum.PENDING,
+            })),
+          },
         },
-      },
-      include: { steps: true },
-    });
+        include: { steps: true },
+      })
+      .then(async (wf) => {
+        await this.audit.log("CREATE_WORKFLOW", {
+          workflowId: wf.id,
+          actorCode: dto.submittedBy ?? null,
+          data: dto,
+        });
+        return wf;
+      });
   }
 
   findOne(id: string, actorCode?: string) {
@@ -306,6 +317,12 @@ export class WorkflowService {
         },
       });
 
+      await this.audit.log("APPLY_ACTION", {
+        workflowId: id,
+        actorCode: dto.actorCode ?? null,
+        data: { action: dto.action, role: dto.role },
+      });
+
       return updated;
     });
   }
@@ -327,6 +344,27 @@ export class WorkflowService {
         steps: { orderBy: { sequence: "asc" } },
       },
     });
+  }
+
+  exportAll(params?: { actorCode?: string; role?: WorkflowRole }) {
+    // 权限已在 controller 判定；此处返回全量字段，后续可加筛选/脱敏
+    return this.prisma.workflow
+      .findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+          steps: { orderBy: { sequence: "asc" } },
+          actions: { orderBy: { createdAt: "asc" } },
+          files: true,
+        },
+      })
+      .then(async (rows) => {
+        await this.audit.log("EXPORT_WORKFLOW", {
+          workflowId: "EXPORT",
+          actorCode: params?.actorCode ?? null,
+          data: { role: params?.role ?? null, count: rows.length },
+        });
+        return rows;
+      });
   }
 
   addAttachment(id: string, dto: CreateAttachmentDto) {
