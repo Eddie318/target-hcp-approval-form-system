@@ -14,9 +14,14 @@
     "ci": "npm run lint && npm run test && npm run build",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev",
-    "contract-test": "node scripts/contract-test.js"
+    "contract-test": "node scripts/contract-test.js",
+    "import:assignments": "node scripts/import-assignments.js"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.2.3"
   }
 }

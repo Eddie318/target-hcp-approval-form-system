@@ -6,3 +6,210 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// 基础枚举
+enum UserRole {
+  MR
+  DSM
+  RSM
+  BISO1
+  BISO2
+  RSD
+  CD
+}
+
+enum WorkflowType {
+  NEW_TARGET_HOSPITAL
+  CANCEL_TARGET_HOSPITAL
+  NEW_LINK_PHARMACY
+  CANCEL_LINK_PHARMACY
+  REGION_ADJUSTMENT
+}
+
+enum WorkflowStatus {
+  DRAFT
+  PENDING
+  IN_PROGRESS
+  REJECTED
+  WITHDRAWN
+  APPROVED
+}
+
+enum WorkflowActionType {
+  SUBMIT
+  APPROVE
+  REJECT
+  RETURN
+  WITHDRAW
+}
+
+enum EntityType {
+  HOSPITAL
+  PHARMACY
+}
+
+enum WhitelistStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+// 人员与机构
+model User {
+  id           String   @id @default(cuid())
+  code         String   @unique // 岗位号：MR territory code / DSM Catalyst Orbit code / RSM Orbit code
+  name         String
+  role         UserRole
+  region       String?  // 大区文本
+  province     String?
+  city         String?
+  email        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Hospital {
+  id             String   @id @default(cuid())
+  code           String   @unique // 关联医院 code
+  organizationId String?  // 机构ID（医院或药店的 ID）
+  name           String
+  region         String?  // 大区文本
+  province       String?
+  city           String?
+  salesType      String?  // 医院/药店
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Pharmacy {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  organizationId String?  // 机构ID（药店 ID）
+  name           String
+  region         String?
+  province       String?
+  city           String?
+  pharmacyType   String?  // A 类/关联
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// 医院-代表分配关系（权限/占比）
+model HospitalAssignment {
+  id             String   @id @default(cuid())
+  hospitalCode   String
+  mrCode         String   // territory code
+  dsmCode        String?
+  rsmCode        String?
+  sharePercent   Decimal  @default(0) // 占比，可缺省
+  region         String?  // 大区
+  province       String?
+  city           String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([hospitalCode])
+  @@index([mrCode])
+  @@unique([hospitalCode, mrCode])
+}
+
+// 白名单记录
+model WhitelistRecord {
+  id           String          @id @default(cuid())
+  entityType   EntityType
+  code         String          // 医院或药店编码
+  name         String?
+  region       String?
+  province     String?
+  city         String?
+  pharmacyType String?         // 针对药店：A 类/关联
+  status       WhitelistStatus @default(ACTIVE)
+  effectiveFrom DateTime?
+  effectiveTo   DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([code])
+}
+
+// 指标额度缓存（弱校验用）
+model TargetMetric {
+  id              String   @id @default(cuid())
+  hospitalCode    String   @unique
+  availableAmount Decimal
+  currency        String   @default("CNY")
+  lastSyncedAt    DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// 流程主表
+model Workflow {
+  id          String         @id @default(cuid())
+  type        WorkflowType
+  status      WorkflowStatus
+  title       String?
+  payload     Json?
+  submittedBy String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  steps    WorkflowStep[]
+  actions  WorkflowAction[]
+  files    Attachment[]
+}
+
+// 流程节点定义/实例
+model WorkflowStep {
+  id          String         @id @default(cuid())
+  workflowId  String
+  sequence    Int
+  role        UserRole
+  assignee    String?        // 岗位号
+  status      WorkflowStatus @default(PENDING)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  actions  WorkflowAction[]
+  files    Attachment[]
+
+  @@index([workflowId])
+  @@index([role])
+}
+
+// 审批动作记录
+model WorkflowAction {
+  id          String             @id @default(cuid())
+  workflowId  String
+  stepId      String?
+  action      WorkflowActionType
+  actorCode   String?            // 岗位号
+  comment     String?
+  payload     Json?
+  createdAt   DateTime           @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  step     WorkflowStep? @relation(fields: [stepId], references: [id], onDelete: SetNull)
+
+  @@index([workflowId])
+  @@index([stepId])
+}
+
+// 附件
+model Attachment {
+  id          String   @id @default(cuid())
+  workflowId  String
+  stepId      String?
+  filename    String
+  url         String?
+  mimeType    String?
+  createdAt   DateTime @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  step     WorkflowStep? @relation(fields: [stepId], references: [id], onDelete: SetNull)
+
+  @@index([workflowId])
+}

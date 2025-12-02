@@ -17,6 +17,7 @@ services:
       context: .
       dockerfile: apps/mock/Dockerfile
     environment:
+      DATABASE_URL: postgres://approval_user:example_password@db:5432/approval_db
       NODE_ENV: development
       APP_PORT: 4001
     ports:
