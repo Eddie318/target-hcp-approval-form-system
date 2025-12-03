@@ -51,6 +51,7 @@ function App() {
   const [actionForm] = Form.useForm();
   const [attachForm] = Form.useForm();
   const [loadingNewHospital, setLoadingNewHospital] = useState(false);
+  const [createType, setCreateType] = useState<string>("NEW_TARGET_HOSPITAL");
 
   useEffect(() => {
     // 若本地已有存储则尝试恢复
@@ -251,44 +252,6 @@ function App() {
               </Space>
             </Card>
 
-            <Card title="创建流程（简化联调表单）">
-              <Alert
-                type="info"
-                showIcon
-                style={{ marginBottom: 12 }}
-                message="submittedBy 默认使用当前登录 actorCode；payload 需填 JSON。"
-              />
-              <Form form={createForm} layout="vertical" initialValues={{ type: "CANCEL_TARGET_HOSPITAL", payloadText: "{}" }}>
-                <Form.Item label="流程类型" name="type" rules={[{ required: true }]}>
-                  <Select
-                    options={[
-                      { label: "取消目标医院", value: "CANCEL_TARGET_HOSPITAL" },
-                      { label: "新增关联药房", value: "NEW_LINK_PHARMACY" },
-                      { label: "新增目标医院", value: "NEW_TARGET_HOSPITAL" },
-                      { label: "取消关联药房", value: "CANCEL_LINK_PHARMACY" },
-                      { label: "区域调整", value: "REGION_ADJUSTMENT" },
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item label="标题" name="title">
-                  <Input placeholder="可选" />
-                </Form.Item>
-                <Form.Item
-                  label="payload (JSON)"
-                  name="payloadText"
-                  rules={[{ required: true, message: "请输入 JSON" }]}
-                >
-                  <Input.TextArea rows={4} placeholder='例如 {"reason":"测试","distributions":[{"targetHospitalCode":"H1","sharePercent":100}]}' />
-                </Form.Item>
-                <Space>
-                  <Button type="primary" loading={loadingCreate} onClick={handleCreateWorkflow}>
-                    创建流程
-                  </Button>
-                  <Tag>当前提交人: {actorCode || "未登录"}</Tag>
-                </Space>
-              </Form>
-            </Card>
-
             <Card title="流程动作（提交/审批等）">
               <Form form={actionForm} layout="vertical">
                 <Form.Item
@@ -333,6 +296,17 @@ function App() {
                 message="指派代表需在提交人权限范围内；代表岗位号自动或手动填写。附件支持 JPG/PNG（记录元信息）。"
               />
               <Form form={newHospitalForm} layout="vertical">
+                <Form.Item
+                  label="流程类型"
+                  name="fixedType"
+                  initialValue="NEW_TARGET_HOSPITAL"
+                  rules={[{ required: true }]}
+                >
+                  <Select
+                    disabled
+                    options={[{ label: "新增目标医院", value: "NEW_TARGET_HOSPITAL" }]}
+                  />
+                </Form.Item>
                 <Form.Item
                   label="机构名称"
                   name="institutionName"
@@ -387,6 +361,54 @@ function App() {
                   </Button>
                   <Tag>提交人: {actorCode || "未登录"}</Tag>
                   <Tag>角色: {actorRole || "未登录"}</Tag>
+                </Space>
+              </Form>
+            </Card>
+
+            <Card title="其他流程（仍用 JSON 联调）">
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 12 }}
+                message="除新增目标医院外，其他流程可用 JSON 方式创建；submittedBy 自动使用当前 actorCode。"
+              />
+              <Form
+                form={createForm}
+                layout="vertical"
+                initialValues={{ type: "CANCEL_TARGET_HOSPITAL", payloadText: "{}" }}
+                onValuesChange={(changed) => {
+                  if (changed.type) setCreateType(changed.type);
+                }}
+              >
+                <Form.Item label="流程类型" name="type" rules={[{ required: true }]}>
+                  <Select
+                    options={[
+                      { label: "取消目标医院", value: "CANCEL_TARGET_HOSPITAL" },
+                      { label: "新增关联药房", value: "NEW_LINK_PHARMACY" },
+                      { label: "取消关联药房", value: "CANCEL_LINK_PHARMACY" },
+                      { label: "区域调整", value: "REGION_ADJUSTMENT" },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="标题" name="title">
+                  <Input placeholder="可选" />
+                </Form.Item>
+                <Form.Item
+                  label="payload (JSON)"
+                  name="payloadText"
+                  rules={[{ required: true, message: "请输入 JSON" }]}
+                >
+                  <Input.TextArea
+                    rows={4}
+                    placeholder='例如 {"reason":"测试","distributions":[{"targetHospitalCode":"H1","sharePercent":100}]}'
+                  />
+                </Form.Item>
+                <Space>
+                  <Button type="primary" loading={loadingCreate} onClick={handleCreateWorkflow}>
+                    创建流程
+                  </Button>
+                  <Tag>当前提交人: {actorCode || "未登录"}</Tag>
+                  <Tag>选择类型: {createType}</Tag>
                 </Space>
               </Form>
             </Card>
