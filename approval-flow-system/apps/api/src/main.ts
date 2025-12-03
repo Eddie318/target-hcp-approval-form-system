@@ -7,14 +7,16 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 允许前端（PC 4173、H5 4174）联调跨域，如需收紧可调整 origin 列表
+  // 开放本地跨域联调，如需收紧可改为白名单列表
   app.enableCors({
-    origin: [
-      "http://localhost:4173",
-      "http://localhost:4174",
-      "http://127.0.0.1:4173",
-      "http://127.0.0.1:4174",
-    ],
+    origin: true,
     credentials: true,
+  });
+
+  // 避免缓存，特别是 mock-login 这类返回值容易被 304 缓存
+  app.use((req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    next();
   });
 
   app.useGlobalPipes(
