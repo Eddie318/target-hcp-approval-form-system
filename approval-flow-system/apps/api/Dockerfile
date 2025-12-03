@@ -1,8 +1,5 @@
-FROM node:20-alpine
+FROM node:20-bullseye-slim
 WORKDIR /usr/src/app
-
-# Prisma engine for musl requires openssl 1.1 compatibility on alpine
-RUN apk add --no-cache openssl1.1-compat
 
 # Install workspaces dependencies
 COPY package.json ./
