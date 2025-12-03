@@ -52,6 +52,23 @@ function App() {
   const [attachForm] = Form.useForm();
   const [loadingNewHospital, setLoadingNewHospital] = useState(false);
   const [createType, setCreateType] = useState<string>("NEW_TARGET_HOSPITAL");
+  // 模拟代表列表，实际应由后端按权限返回
+  const mockRepOptions = [
+    { label: "张艳萍 (NCNSCC0C104)", value: "NCNSCC0C104", name: "张艳萍" },
+    { label: "刘瑶 (NCNSCC0C101)", value: "NCNSCC0C101", name: "刘瑶" },
+    { label: "丛志刚 (NCNSCC0C102)", value: "NCNSCC0C102", name: "丛志刚" },
+    { label: "刘晓玉 (NCNSCC0C103)", value: "NCNSCC0C103", name: "刘晓玉" },
+  ];
+
+  const filterRepOptions = () => {
+    if (!actorRole || !actorCode) return [];
+    if (actorRole === "MR") {
+      const self = mockRepOptions.find((r) => r.value === actorCode);
+      return self ? [self] : [];
+    }
+    // DSM / RSM / BISO等：放开全部 mock 列表
+    return mockRepOptions;
+  };
 
   useEffect(() => {
     // 若本地已有存储则尝试恢复
@@ -329,14 +346,28 @@ function App() {
                   name="repName"
                   rules={[{ required: true, message: "请选择/填写代表姓名" }]}
                 >
-                  <Input placeholder="当前权限范围内的代表" />
+                  <Select
+                    placeholder="当前权限范围内的代表"
+                    options={filterRepOptions()}
+                    showSearch
+                    optionFilterProp="label"
+                    onChange={(val) => {
+                      const rep = mockRepOptions.find((r) => r.value === val);
+                      if (rep) {
+                        newHospitalForm.setFieldsValue({
+                          repCode: rep.value,
+                          repName: rep.name,
+                        });
+                      }
+                    }}
+                  />
                 </Form.Item>
                 <Form.Item
                   label="代表岗位号"
                   name="repCode"
                   rules={[{ required: true, message: "请输入代表岗位号" }]}
                 >
-                  <Input placeholder="选择代表后自动或手动填写" />
+                  <Input placeholder="选择代表后自动带出" readOnly />
                 </Form.Item>
                 <Form.Item
                   label="新增理由"
