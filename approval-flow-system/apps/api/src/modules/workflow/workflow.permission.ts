@@ -21,17 +21,13 @@ export const WorkflowPermissions: PermissionMap = {
     [WorkflowRoleEnum.DSM]: [
       WorkflowActionEnum.SUBMIT,
       WorkflowActionEnum.WITHDRAW,
-    ],
-    [WorkflowRoleEnum.RSM]: [
-      WorkflowActionEnum.SUBMIT,
-      WorkflowActionEnum.WITHDRAW,
-    ],
-    [WorkflowRoleEnum.DSM]: [
       WorkflowActionEnum.APPROVE,
       WorkflowActionEnum.REJECT,
       WorkflowActionEnum.RETURN,
     ],
     [WorkflowRoleEnum.RSM]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
       WorkflowActionEnum.APPROVE,
       WorkflowActionEnum.REJECT,
       WorkflowActionEnum.RETURN,
@@ -61,17 +57,13 @@ export const WorkflowPermissions: PermissionMap = {
     [WorkflowRoleEnum.DSM]: [
       WorkflowActionEnum.SUBMIT,
       WorkflowActionEnum.WITHDRAW,
-    ],
-    [WorkflowRoleEnum.RSM]: [
-      WorkflowActionEnum.SUBMIT,
-      WorkflowActionEnum.WITHDRAW,
-    ],
-    [WorkflowRoleEnum.DSM]: [
       WorkflowActionEnum.APPROVE,
       WorkflowActionEnum.REJECT,
       WorkflowActionEnum.RETURN,
     ],
     [WorkflowRoleEnum.RSM]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
       WorkflowActionEnum.APPROVE,
       WorkflowActionEnum.REJECT,
       WorkflowActionEnum.RETURN,
@@ -97,17 +89,13 @@ export const WorkflowPermissions: PermissionMap = {
     [WorkflowRoleEnum.DSM]: [
       WorkflowActionEnum.SUBMIT,
       WorkflowActionEnum.WITHDRAW,
-    ],
-    [WorkflowRoleEnum.RSM]: [
-      WorkflowActionEnum.SUBMIT,
-      WorkflowActionEnum.WITHDRAW,
-    ],
-    [WorkflowRoleEnum.DSM]: [
       WorkflowActionEnum.APPROVE,
       WorkflowActionEnum.REJECT,
       WorkflowActionEnum.RETURN,
     ],
     [WorkflowRoleEnum.RSM]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
       WorkflowActionEnum.APPROVE,
       WorkflowActionEnum.REJECT,
       WorkflowActionEnum.RETURN,
@@ -137,17 +125,13 @@ export const WorkflowPermissions: PermissionMap = {
     [WorkflowRoleEnum.DSM]: [
       WorkflowActionEnum.SUBMIT,
       WorkflowActionEnum.WITHDRAW,
-    ],
-    [WorkflowRoleEnum.RSM]: [
-      WorkflowActionEnum.SUBMIT,
-      WorkflowActionEnum.WITHDRAW,
-    ],
-    [WorkflowRoleEnum.DSM]: [
       WorkflowActionEnum.APPROVE,
       WorkflowActionEnum.REJECT,
       WorkflowActionEnum.RETURN,
     ],
     [WorkflowRoleEnum.RSM]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
       WorkflowActionEnum.APPROVE,
       WorkflowActionEnum.REJECT,
       WorkflowActionEnum.RETURN,
@@ -173,8 +157,6 @@ export const WorkflowPermissions: PermissionMap = {
     [WorkflowRoleEnum.RSM]: [
       WorkflowActionEnum.SUBMIT,
       WorkflowActionEnum.WITHDRAW,
-    ],
-    [WorkflowRoleEnum.RSM]: [
       WorkflowActionEnum.APPROVE,
       WorkflowActionEnum.REJECT,
       WorkflowActionEnum.RETURN,
