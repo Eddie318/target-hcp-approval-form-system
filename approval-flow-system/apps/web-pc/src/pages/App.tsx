@@ -47,8 +47,10 @@ function App() {
   const [loadingAction, setLoadingAction] = useState(false);
   const [loadingAttachment, setLoadingAttachment] = useState(false);
   const [createForm] = Form.useForm();
+  const [newHospitalForm] = Form.useForm();
   const [actionForm] = Form.useForm();
   const [attachForm] = Form.useForm();
+  const [loadingNewHospital, setLoadingNewHospital] = useState(false);
 
   useEffect(() => {
     // 若本地已有存储则尝试恢复
@@ -125,6 +127,42 @@ function App() {
       }
     } finally {
       setLoadingCreate(false);
+    }
+  };
+
+  const handleCreateNewHospital = async () => {
+    try {
+      const values = await newHospitalForm.validateFields();
+      const payload = {
+        institutionName: values.institutionName,
+        institutionAddress: values.institutionAddress,
+        repName: values.repName,
+        repCode: values.repCode,
+        reason: values.reason,
+      };
+      setLoadingNewHospital(true);
+      const res = await apiClient.post("/workflows", {
+        type: "NEW_TARGET_HOSPITAL",
+        title: values.title || "",
+        payload,
+        submittedBy: actorCode,
+      });
+      const wfId = res.data?.id;
+      // 如果填写了附件元信息，则顺带记录附件
+      if (wfId && values.filename) {
+        await apiClient.post(`/workflows/${wfId}/attachments`, {
+          filename: values.filename,
+          url: values.url || null,
+          mimeType: values.mimeType || "image/jpeg",
+        });
+      }
+      message.success(`新增目标医院已创建，ID: ${wfId || "-"}`);
+      fetchWorkflows();
+    } catch (err: any) {
+      console.error(err);
+      message.error("创建失败，请检查必填项或权限");
+    } finally {
+      setLoadingNewHospital(false);
     }
   };
 
@@ -283,6 +321,72 @@ function App() {
                     提交动作
                   </Button>
                   <Tag>当前角色: {actorRole || "未登录"}</Tag>
+                </Space>
+              </Form>
+            </Card>
+
+            <Card title="新增目标医院（正式表单字段）">
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 12 }}
+                message="指派代表需在提交人权限范围内；代表岗位号自动或手动填写。附件支持 JPG/PNG（记录元信息）。"
+              />
+              <Form form={newHospitalForm} layout="vertical">
+                <Form.Item
+                  label="机构名称"
+                  name="institutionName"
+                  rules={[{ required: true, message: "请输入机构名称" }]}
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item
+                  label="机构地址"
+                  name="institutionAddress"
+                  rules={[{ required: true, message: "请输入机构地址" }]}
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item label="标题" name="title">
+                  <Input placeholder="可选" />
+                </Form.Item>
+                <Form.Item
+                  label="指派代表姓名"
+                  name="repName"
+                  rules={[{ required: true, message: "请选择/填写代表姓名" }]}
+                >
+                  <Input placeholder="当前权限范围内的代表" />
+                </Form.Item>
+                <Form.Item
+                  label="代表岗位号"
+                  name="repCode"
+                  rules={[{ required: true, message: "请输入代表岗位号" }]}
+                >
+                  <Input placeholder="选择代表后自动或手动填写" />
+                </Form.Item>
+                <Form.Item
+                  label="新增理由"
+                  name="reason"
+                  rules={[{ required: true, message: "请输入新增理由" }]}
+                >
+                  <Input.TextArea rows={3} />
+                </Form.Item>
+                <Divider>证明凭证（可选，记录元信息）</Divider>
+                <Form.Item label="文件名" name="filename">
+                  <Input placeholder="例如 proof.jpg" />
+                </Form.Item>
+                <Form.Item label="URL" name="url">
+                  <Input placeholder="可选：http://..." />
+                </Form.Item>
+                <Form.Item label="MIME类型" name="mimeType" initialValue="image/jpeg">
+                  <Input placeholder="image/jpeg 或 image/png" />
+                </Form.Item>
+                <Space>
+                  <Button type="primary" loading={loadingNewHospital} onClick={handleCreateNewHospital}>
+                    创建目标医院
+                  </Button>
+                  <Tag>提交人: {actorCode || "未登录"}</Tag>
+                  <Tag>角色: {actorRole || "未登录"}</Tag>
                 </Space>
               </Form>
             </Card>
