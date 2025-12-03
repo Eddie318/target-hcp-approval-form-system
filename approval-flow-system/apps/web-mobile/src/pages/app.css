@@ -1,0 +1,13 @@
+body {
+  margin: 0;
+  background: #f7f8fa;
+}
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.content {
+  flex: 1;
+  padding: 12px;
+}

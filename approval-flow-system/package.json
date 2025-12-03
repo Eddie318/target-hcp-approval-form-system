@@ -5,7 +5,9 @@
   "description": "Approval flow system monorepo (API + mock + infra).",
   "workspaces": [
     "apps/api",
-    "apps/mock"
+    "apps/mock",
+    "apps/web-pc",
+    "apps/web-mobile"
   ],
   "scripts": {
     "lint": "npm run lint --workspaces",
