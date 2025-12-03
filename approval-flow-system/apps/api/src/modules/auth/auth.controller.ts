@@ -12,7 +12,14 @@ export class AuthController {
    */
   @Get("mock-login")
   async mockLogin(@Query("email") email?: string) {
-    if (!email) return { email: null, actorCode: null, actorRole: null };
+    if (!email) {
+      return {
+        email: null,
+        actorCode: null,
+        actorRole: null,
+        source: "no-email",
+      };
+    }
     const mapping = await this.prisma.userMapping.findFirst({
       where: { email, enabled: true },
     });
@@ -23,6 +30,7 @@ export class AuthController {
         actorRole: mapping.actorRole,
         name: mapping.name,
         source: "userMapping",
+        cacheControl: "no-store",
       };
     }
     const approver = await this.prisma.approverConfig.findFirst({
@@ -35,8 +43,15 @@ export class AuthController {
         actorRole: approver.role,
         name: approver.name,
         source: "approverConfig",
+        cacheControl: "no-store",
       };
     }
-    return { email, actorCode: null, actorRole: null, source: "not-found" };
+    return {
+      email,
+      actorCode: null,
+      actorRole: null,
+      source: "not-found",
+      cacheControl: "no-store",
+    };
   }
 }
