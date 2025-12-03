@@ -1,7 +1,7 @@
 import { Controller, Get, Headers } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { WorkflowScopeService } from "./workflow.scope";
-import { WorkflowRoleEnum } from "./workflow.constants";
+import { WorkflowRole } from "./workflow.constants";
 
 @ApiTags("representatives")
 @Controller("representatives")
@@ -14,7 +14,7 @@ export class RepresentativeController {
     @Headers("x-actor-role") actorRole?: string,
   ) {
     const reps = await this.scopeService.getRepresentatives(
-      actorRole as any as WorkflowRoleEnum,
+      actorRole as WorkflowRole,
       actorCode || "",
     );
     return reps;
