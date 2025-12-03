@@ -60,4 +60,47 @@ export class WorkflowScopeService {
       throw new Error(`医院 ${hospitalCode} 不在权限范围`);
     }
   }
+
+  /**
+   * 获取当前登录人的可选代表列表：
+   * - MR：只返回自己
+   * - DSM：返回所有 mrCode 等于下属的 MR（通过 HospitalAssignment 反查）
+   * - RSM：返回其下属所有 DSM 的 MR
+   */
+  async getRepresentatives(role: WorkflowRole, actorCode: string) {
+    if (!actorCode || !role) return [];
+    // MR 只返回自身
+    if (role === WorkflowRoleEnum.MR) {
+      const self = await this.prisma.userMapping.findFirst({
+        where: { actorCode, actorRole: "MR", enabled: true },
+        select: { actorCode: true, actorRole: true, name: true, email: true },
+      });
+      return self ? [self] : [];
+    }
+    // DSM 或 RSM：找出其覆盖的 MR
+    const condition =
+      role === WorkflowRoleEnum.DSM
+        ? { dsmCode: actorCode }
+        : role === WorkflowRoleEnum.RSM
+          ? { rsmCode: actorCode }
+          : {};
+    if (!Object.keys(condition).length) return [];
+
+    const mrCodes = await this.prisma.hospitalAssignment.findMany({
+      where: condition,
+      select: { mrCode: true },
+    });
+    const uniqMrCodes = Array.from(new Set(mrCodes.map((r) => r.mrCode)));
+    if (!uniqMrCodes.length) return [];
+
+    const reps = await this.prisma.userMapping.findMany({
+      where: {
+        actorCode: { in: uniqMrCodes },
+        actorRole: "MR",
+        enabled: true,
+      },
+      select: { actorCode: true, actorRole: true, name: true, email: true },
+    });
+    return reps;
+  }
 }

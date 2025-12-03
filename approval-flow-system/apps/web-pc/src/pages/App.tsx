@@ -52,22 +52,26 @@ function App() {
   const [attachForm] = Form.useForm();
   const [loadingNewHospital, setLoadingNewHospital] = useState(false);
   const [createType, setCreateType] = useState<string>("NEW_TARGET_HOSPITAL");
-  // 模拟代表列表，实际应由后端按权限返回
-  const mockRepOptions = [
-    { label: "张艳萍 (NCNSCC0C104)", value: "NCNSCC0C104", name: "张艳萍" },
-    { label: "刘瑶 (NCNSCC0C101)", value: "NCNSCC0C101", name: "刘瑶" },
-    { label: "丛志刚 (NCNSCC0C102)", value: "NCNSCC0C102", name: "丛志刚" },
-    { label: "刘晓玉 (NCNSCC0C103)", value: "NCNSCC0C103", name: "刘晓玉" },
-  ];
+  const [repOptions, setRepOptions] = useState<{ label: string; value: string; name?: string }[]>([]);
 
-  const filterRepOptions = () => {
-    if (!actorRole || !actorCode) return [];
-    if (actorRole === "MR") {
-      const self = mockRepOptions.find((r) => r.value === actorCode);
-      return self ? [self] : [];
+  const fetchRepOptions = async () => {
+    if (!actorCode || !actorRole) {
+      setRepOptions([]);
+      return;
     }
-    // DSM / RSM / BISO等：放开全部 mock 列表
-    return mockRepOptions;
+    try {
+      const res = await apiClient.get("/representatives/scope");
+      const list =
+        res.data?.map((r: any) => ({
+          label: `${r.name || r.actorCode} (${r.actorCode})`,
+          value: r.actorCode,
+          name: r.name || r.actorCode,
+        })) || [];
+      setRepOptions(list);
+    } catch (err) {
+      console.error(err);
+      message.error("获取代表列表失败");
+    }
   };
 
   useEffect(() => {
@@ -77,6 +81,16 @@ function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    // 登录成功后刷新代表列表
+    if (actorCode && actorRole) {
+      fetchRepOptions();
+    } else {
+      setRepOptions([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actorCode, actorRole]);
 
   const handleMockLogin = async (targetEmail: string, silent = false) => {
     if (!targetEmail) {

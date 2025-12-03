@@ -9,6 +9,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { ImportLogController } from "./import-log.controller";
 import { OperationLogController } from "./operation-log.controller";
 import { ApproverConfigController } from "./approver-config.controller";
+import { RepresentativeController } from "./representative.controller";
 import { AuthController } from "../auth/auth.controller";
 
 @Module({
@@ -18,6 +19,7 @@ import { AuthController } from "../auth/auth.controller";
     OperationLogController,
     AuthController,
     ApproverConfigController,
+    RepresentativeController,
   ],
   providers: [
     WorkflowService,
