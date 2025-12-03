@@ -6,16 +6,21 @@ import {
   IsOptional,
   IsString,
 } from "class-validator";
-import { WorkflowTypeEnum, WorkflowRoleEnum } from "../workflow.constants";
+import {
+  WorkflowRole,
+  WorkflowRoleEnum,
+  WorkflowType,
+  WorkflowTypeEnum,
+} from "../workflow.constants";
 
 export class CreateApproverConfigDto {
   @ApiProperty({ enum: Object.values(WorkflowTypeEnum) })
   @IsEnum(WorkflowTypeEnum)
-  workflowType: WorkflowTypeEnum;
+  workflowType: WorkflowType;
 
   @ApiProperty({ enum: Object.values(WorkflowRoleEnum) })
   @IsEnum(WorkflowRoleEnum)
-  role: WorkflowRoleEnum;
+  role: WorkflowRole;
 
   @ApiProperty({ description: "企业邮箱（已关联企微）" })
   @IsEmail()

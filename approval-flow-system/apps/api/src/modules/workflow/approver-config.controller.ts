@@ -14,15 +14,16 @@ import { CreateApproverConfigDto } from "./dto/create-approver-config.dto";
 import { UpdateApproverConfigDto } from "./dto/update-approver-config.dto";
 import { IsBooleanString, IsEnum, IsOptional, IsString } from "class-validator";
 import { WorkflowRoleEnum, WorkflowTypeEnum } from "./workflow.constants";
+import { WorkflowRole, WorkflowType } from "@prisma/client";
 
 class ApproverQueryDto {
   @IsOptional()
   @IsEnum(WorkflowTypeEnum)
-  workflowType?: WorkflowTypeEnum;
+  workflowType?: WorkflowType;
 
   @IsOptional()
   @IsEnum(WorkflowRoleEnum)
-  role?: WorkflowRoleEnum;
+  role?: WorkflowRole;
 
   @IsOptional()
   @IsBooleanString()
