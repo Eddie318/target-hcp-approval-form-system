@@ -6,6 +6,17 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // 允许前端（PC 4173、H5 4174）联调跨域，如需收紧可调整 origin 列表
+  app.enableCors({
+    origin: [
+      "http://localhost:4173",
+      "http://localhost:4174",
+      "http://127.0.0.1:4173",
+      "http://127.0.0.1:4174",
+    ],
+    credentials: true,
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
