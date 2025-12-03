@@ -11,11 +11,28 @@ async function bootstrap() {
   app.enableCors({
     origin: true,
     credentials: true,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+    allowedHeaders: "*",
   });
 
-  // 避免缓存，特别是 mock-login 这类返回值容易被 304 缓存
+  // 全局禁用 etag，避免 304 导致无 CORS 头
+  app.set("etag", false);
+
+  // 避免缓存 + 强制 CORS 头（确保 304/OPTIONS 也带上）
   app.use((req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      req.header("Access-Control-Request-Headers") || "*",
+    );
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+    );
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(204);
+    }
     next();
   });
 
