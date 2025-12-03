@@ -77,9 +77,10 @@ async function main() {
   await clearTable();
 
   console.log("写入数据库...");
-  for (const m of mappings) {
-    await prisma.userMapping.create({ data: m });
-  }
+  await prisma.userMapping.createMany({
+    data: mappings,
+    skipDuplicates: true,
+  });
   console.log("导入完成");
 }
 
