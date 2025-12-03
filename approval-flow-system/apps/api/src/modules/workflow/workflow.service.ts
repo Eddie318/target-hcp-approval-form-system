@@ -9,6 +9,7 @@ import {
   WorkflowAction,
   WorkflowActionEnum,
   WorkflowRole,
+  WorkflowRoleEnum,
   WorkflowStatusEnum,
   WorkflowType,
 } from "./workflow.constants";
