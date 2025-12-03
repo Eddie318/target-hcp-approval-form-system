@@ -19,6 +19,8 @@
     "contract-test": "node scripts/contract-test.js",
     "import:assignments": "node scripts/import-assignments.js",
     "import:pharmacy-whitelist": "node scripts/import-pharmacy-whitelist.js"
+    ,
+    "import:users": "node scripts/import-users.js"
   },
   "engines": {
     "node": ">=20"

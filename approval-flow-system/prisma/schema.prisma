@@ -257,3 +257,19 @@ model ApproverConfig {
   @@index([workflowType, role])
   @@index([email])
 }
+
+// 企业微信身份映射表
+model UserMapping {
+  id        String   @id @default(cuid())
+  email     String
+  actorCode String
+  actorRole UserRole
+  name      String?
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, actorCode, actorRole])
+  @@index([actorCode])
+  @@index([actorRole])
+}
