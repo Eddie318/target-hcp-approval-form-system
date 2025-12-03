@@ -14,7 +14,7 @@ export class RepresentativeController {
     @Headers("x-actor-role") actorRole?: string,
   ) {
     const reps = await this.scopeService.getRepresentatives(
-      actorRole as WorkflowRoleEnum,
+      actorRole as any as WorkflowRoleEnum,
       actorCode || "",
     );
     return reps;
