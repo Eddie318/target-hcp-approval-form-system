@@ -119,13 +119,24 @@ export class WorkflowService {
         },
       })
       .then((wf) => {
-        if (
-          wf.status === WorkflowStatusEnum.DRAFT &&
-          actorCode &&
-          wf.submittedBy &&
-          wf.submittedBy !== actorCode
-        ) {
-          throw new BadRequestException("草稿仅发起人可见");
+        if (actorCode) {
+          if (
+            wf.status === WorkflowStatusEnum.DRAFT &&
+            wf.submittedBy &&
+            wf.submittedBy !== actorCode
+          ) {
+            throw new BadRequestException("草稿仅发起人可见");
+          }
+          const currentStep =
+            wf.steps.find((s) => s.status === WorkflowStatusEnum.IN_PROGRESS) ||
+            wf.steps.find((s) => s.status === WorkflowStatusEnum.PENDING) ||
+            null;
+          const allowed =
+            wf.submittedBy === actorCode ||
+            (currentStep?.assignee && currentStep.assignee === actorCode);
+          if (!allowed && wf.status !== WorkflowStatusEnum.DRAFT) {
+            throw new BadRequestException("无权限查看该流程");
+          }
         }
         return wf;
       });
@@ -173,6 +184,33 @@ export class WorkflowService {
         current.submittedBy !== dto.actorCode
       ) {
         throw new BadRequestException("仅发起人可提交/撤回该流程");
+      }
+
+      // 提交时设置首节点 assignee（MR->DSM，DSM->RSM，RSM->BISO1 不指定）
+      if (dto.action === WorkflowActionEnum.SUBMIT) {
+        const firstStep = current.steps[0];
+        if (firstStep) {
+          let assignee: string | null = null;
+          if (dto.role === WorkflowRoleEnum.MR) {
+            assignee = await this.scopeService.getDirectManager(
+              WorkflowRoleEnum.MR,
+              dto.actorCode || "",
+            );
+          } else if (dto.role === WorkflowRoleEnum.DSM) {
+            assignee = await this.scopeService.getDirectManager(
+              WorkflowRoleEnum.DSM,
+              dto.actorCode || "",
+            );
+          } else if (dto.role === WorkflowRoleEnum.RSM) {
+            assignee = null;
+          }
+          if (assignee) {
+            await tx.workflowStep.update({
+              where: { id: firstStep.id },
+              data: { assignee },
+            });
+          }
+        }
       }
 
       // 当前步骤校验：审批动作必须匹配当前步骤角色
@@ -345,7 +383,24 @@ export class WorkflowService {
     if (query.actorCode) {
       where.OR = [
         { submittedBy: query.actorCode },
-        { status: { not: WorkflowStatusEnum.DRAFT } },
+        {
+          AND: [
+            { status: { not: WorkflowStatusEnum.DRAFT } },
+            {
+              steps: {
+                some: {
+                  status: {
+                    in: [
+                      WorkflowStatusEnum.IN_PROGRESS,
+                      WorkflowStatusEnum.PENDING,
+                    ],
+                  },
+                  assignee: query.actorCode,
+                },
+              },
+            },
+          ],
+        },
       ];
     }
     return this.prisma.workflow.findMany({

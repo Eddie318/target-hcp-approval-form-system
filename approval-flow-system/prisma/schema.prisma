@@ -274,3 +274,10 @@ model UserMapping {
   @@index([actorCode])
   @@index([actorRole])
 }
+
+// 层级映射（提交人 -> 直属 DSM/RSM）
+model UserHierarchy {
+  actorCode String @id
+  dsmCode   String?
+  rsmCode   String?
+}

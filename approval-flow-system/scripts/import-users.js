@@ -43,6 +43,7 @@ function loadCsv(filePath) {
 
 async function clearTable() {
   await prisma.userMapping.deleteMany();
+  await prisma.userHierarchy.deleteMany();
 }
 
 async function main() {
@@ -55,6 +56,7 @@ async function main() {
   const rows = loadCsv(filePath);
 
   const mappings = [];
+  const hierarchies = [];
   for (const row of rows) {
     for (const r of ROLE_MAP) {
       const actorCode = row[r.code];
@@ -69,6 +71,16 @@ async function main() {
         enabled: Boolean(email),
       });
     }
+    // 层级映射：MR -> DSM/RSM；DSM -> RSM
+    const mrCode = row["h8"];
+    const dsmCode = row["h6"];
+    const rsmCode = row["h4"];
+    if (mrCode) {
+      hierarchies.push({ actorCode: mrCode, dsmCode: dsmCode || null, rsmCode: rsmCode || null });
+    }
+    if (dsmCode) {
+      hierarchies.push({ actorCode: dsmCode, dsmCode: null, rsmCode: rsmCode || null });
+    }
   }
 
   console.log(`解析完成，记录数（含占位）：${mappings.length}`);
@@ -77,10 +89,16 @@ async function main() {
   await clearTable();
 
   console.log("写入数据库...");
-  await prisma.userMapping.createMany({
-    data: mappings,
-    skipDuplicates: true,
-  });
+  await prisma.$transaction([
+    prisma.userMapping.createMany({
+      data: mappings,
+      skipDuplicates: true,
+    }),
+    prisma.userHierarchy.createMany({
+      data: hierarchies,
+      skipDuplicates: true,
+    }),
+  ]);
   console.log("导入完成");
 }
 

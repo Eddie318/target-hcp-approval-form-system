@@ -105,4 +105,25 @@ export class WorkflowScopeService {
     });
     return reps;
   }
+
+  /**
+   * 提交人直属上级（MR -> DSM；DSM -> RSM；RSM -> null）
+   */
+  async getDirectManager(role: WorkflowRole, actorCode: string) {
+    if (!actorCode) return null;
+    if (role === WorkflowRoleEnum.RSM) return null;
+    if (role === WorkflowRoleEnum.MR) {
+      const h = await this.prisma.userHierarchy.findUnique({
+        where: { actorCode },
+      });
+      return h?.dsmCode || null;
+    }
+    if (role === WorkflowRoleEnum.DSM) {
+      const h = await this.prisma.userHierarchy.findUnique({
+        where: { actorCode },
+      });
+      return h?.rsmCode || null;
+    }
+    return null;
+  }
 }
