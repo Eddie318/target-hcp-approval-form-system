@@ -1,5 +1,21 @@
 import { useEffect, useState } from "react";
-import { Layout, Menu, Typography, Flex, Input, Button, Card, message, Space, Tag, List } from "antd";
+import {
+  Layout,
+  Menu,
+  Typography,
+  Flex,
+  Input,
+  Button,
+  Card,
+  message,
+  Space,
+  Tag,
+  List,
+  Form,
+  Select,
+  Divider,
+  Alert,
+} from "antd";
 import {
   FileTextOutlined,
   CheckCircleOutlined,
@@ -27,6 +43,12 @@ function App() {
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [loadingLogin, setLoadingLogin] = useState(false);
   const [loadingList, setLoadingList] = useState(false);
+  const [loadingCreate, setLoadingCreate] = useState(false);
+  const [loadingAction, setLoadingAction] = useState(false);
+  const [loadingAttachment, setLoadingAttachment] = useState(false);
+  const [createForm] = Form.useForm();
+  const [actionForm] = Form.useForm();
+  const [attachForm] = Form.useForm();
 
   useEffect(() => {
     // 若本地已有存储则尝试恢复
@@ -78,6 +100,72 @@ function App() {
     }
   };
 
+  const handleCreateWorkflow = async () => {
+    try {
+      const values = await createForm.validateFields();
+      let payload = {};
+      if (values.payloadText) {
+        payload = JSON.parse(values.payloadText);
+      }
+      setLoadingCreate(true);
+      const res = await apiClient.post("/workflows", {
+        type: values.type,
+        title: values.title,
+        payload,
+        submittedBy: actorCode,
+      });
+      message.success(`创建成功，ID: ${res.data.id}`);
+      fetchWorkflows();
+    } catch (err: any) {
+      if (err?.message?.includes("Unexpected token")) {
+        message.error("payload 不是有效的 JSON");
+      } else {
+        console.error(err);
+        message.error("创建失败，请检查参数/权限");
+      }
+    } finally {
+      setLoadingCreate(false);
+    }
+  };
+
+  const handleAction = async () => {
+    try {
+      const values = await actionForm.validateFields();
+      setLoadingAction(true);
+      await apiClient.post(`/workflows/${values.workflowId}/actions`, {
+        action: values.action,
+        comment: values.comment,
+        role: actorRole,
+      });
+      message.success(`动作 ${values.action} 已提交`);
+      fetchWorkflows();
+    } catch (err) {
+      console.error(err);
+      message.error("动作提交失败，请检查节点/权限");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleAttachment = async () => {
+    try {
+      const values = await attachForm.validateFields();
+      setLoadingAttachment(true);
+      await apiClient.post(`/workflows/${values.workflowId}/attachments`, {
+        stepId: values.stepId || null,
+        filename: values.filename,
+        url: values.url,
+        mimeType: values.mimeType,
+      });
+      message.success("附件已记录");
+    } catch (err) {
+      console.error(err);
+      message.error("上传附件失败");
+    } finally {
+      setLoadingAttachment(false);
+    }
+  };
+
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Header
@@ -123,6 +211,111 @@ function App() {
                   拉取流程列表
                 </Button>
               </Space>
+            </Card>
+
+            <Card title="创建流程（简化联调表单）">
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 12 }}
+                message="submittedBy 默认使用当前登录 actorCode；payload 需填 JSON。"
+              />
+              <Form form={createForm} layout="vertical" initialValues={{ type: "CANCEL_TARGET_HOSPITAL", payloadText: "{}" }}>
+                <Form.Item label="流程类型" name="type" rules={[{ required: true }]}>
+                  <Select
+                    options={[
+                      { label: "取消目标医院", value: "CANCEL_TARGET_HOSPITAL" },
+                      { label: "新增关联药房", value: "NEW_LINK_PHARMACY" },
+                      { label: "新增目标医院", value: "NEW_TARGET_HOSPITAL" },
+                      { label: "取消关联药房", value: "CANCEL_LINK_PHARMACY" },
+                      { label: "区域调整", value: "REGION_ADJUSTMENT" },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="标题" name="title">
+                  <Input placeholder="可选" />
+                </Form.Item>
+                <Form.Item
+                  label="payload (JSON)"
+                  name="payloadText"
+                  rules={[{ required: true, message: "请输入 JSON" }]}
+                >
+                  <Input.TextArea rows={4} placeholder='例如 {"reason":"测试","distributions":[{"targetHospitalCode":"H1","sharePercent":100}]}' />
+                </Form.Item>
+                <Space>
+                  <Button type="primary" loading={loadingCreate} onClick={handleCreateWorkflow}>
+                    创建流程
+                  </Button>
+                  <Tag>当前提交人: {actorCode || "未登录"}</Tag>
+                </Space>
+              </Form>
+            </Card>
+
+            <Card title="流程动作（提交/审批等）">
+              <Form form={actionForm} layout="vertical">
+                <Form.Item
+                  label="流程 ID"
+                  name="workflowId"
+                  rules={[{ required: true, message: "请输入流程ID" }]}
+                >
+                  <Input placeholder="wf id" />
+                </Form.Item>
+                <Form.Item
+                  label="动作"
+                  name="action"
+                  rules={[{ required: true, message: "请选择动作" }]}
+                >
+                  <Select
+                    options={[
+                      { label: "提交", value: "SUBMIT" },
+                      { label: "同意", value: "APPROVE" },
+                      { label: "驳回", value: "REJECT" },
+                      { label: "退回", value: "RETURN" },
+                      { label: "撤回", value: "WITHDRAW" },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="备注" name="comment">
+                  <Input.TextArea rows={2} placeholder="可选" />
+                </Form.Item>
+                <Space>
+                  <Button type="primary" loading={loadingAction} onClick={handleAction}>
+                    提交动作
+                  </Button>
+                  <Tag>当前角色: {actorRole || "未登录"}</Tag>
+                </Space>
+              </Form>
+            </Card>
+
+            <Card title="附件记录（C&D 审批需先上传附件）">
+              <Form form={attachForm} layout="vertical">
+                <Form.Item
+                  label="流程 ID"
+                  name="workflowId"
+                  rules={[{ required: true, message: "请输入流程ID" }]}
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item label="步骤 ID（可选）" name="stepId">
+                  <Input />
+                </Form.Item>
+                <Form.Item
+                  label="文件名"
+                  name="filename"
+                  rules={[{ required: true, message: "请输入文件名" }]}
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item label="URL" name="url">
+                  <Input placeholder="http://..." />
+                </Form.Item>
+                <Form.Item label="MIME类型" name="mimeType">
+                  <Input placeholder="image/jpeg 或其他" />
+                </Form.Item>
+                <Button type="default" loading={loadingAttachment} onClick={handleAttachment}>
+                  记录附件
+                </Button>
+              </Form>
             </Card>
 
             <Card title="流程列表（占位展示）">
