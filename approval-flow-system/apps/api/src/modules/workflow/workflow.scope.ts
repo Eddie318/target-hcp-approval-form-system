@@ -77,17 +77,19 @@ export class WorkflowScopeService {
       });
       return self ? [self] : [];
     }
-    // DSM 或 RSM：找出其覆盖的 MR
-    const condition =
-      role === WorkflowRoleEnum.DSM
-        ? { dsmCode: actorCode }
-        : role === WorkflowRoleEnum.RSM
-          ? { rsmCode: actorCode }
-          : {};
-    if (!Object.keys(condition).length) return [];
-
+    // DSM 或 RSM：找出其覆盖的 MR；其他角色（BISO/RSD 等）先尝试以 DSM/RSM 条件 union 结果
+    const conditions: any[] = [];
+    if (role === WorkflowRoleEnum.DSM) {
+      conditions.push({ dsmCode: actorCode });
+    } else if (role === WorkflowRoleEnum.RSM) {
+      conditions.push({ rsmCode: actorCode });
+    } else {
+      // 其他角色（BISO/RSD/BU）先尝试兼容 DSM/RSM 范围
+      conditions.push({ dsmCode: actorCode });
+      conditions.push({ rsmCode: actorCode });
+    }
     const mrCodes = await this.prisma.hospitalAssignment.findMany({
-      where: condition,
+      where: { OR: conditions },
       select: { mrCode: true },
     });
     const uniqMrCodes = Array.from(new Set(mrCodes.map((r) => r.mrCode)));
