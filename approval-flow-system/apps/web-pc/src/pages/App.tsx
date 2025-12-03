@@ -362,11 +362,11 @@ function App() {
                 >
                   <Select
                     placeholder="当前权限范围内的代表"
-                    options={filterRepOptions()}
+                    options={repOptions}
                     showSearch
                     optionFilterProp="label"
                     onChange={(val) => {
-                      const rep = mockRepOptions.find((r) => r.value === val);
+                      const rep = repOptions.find((r) => r.value === val);
                       if (rep) {
                         newHospitalForm.setFieldsValue({
                           repCode: rep.value,
