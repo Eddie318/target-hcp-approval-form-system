@@ -8,12 +8,14 @@ import { MockAuthGuard } from "./mock-auth.guard";
 import { PrismaService } from "../../prisma/prisma.service";
 import { ImportLogController } from "./import-log.controller";
 import { OperationLogController } from "./operation-log.controller";
+import { ApproverConfigController } from "./approver-config.controller";
 
 @Module({
   controllers: [
     WorkflowController,
     ImportLogController,
     OperationLogController,
+    ApproverConfigController,
   ],
   providers: [
     WorkflowService,

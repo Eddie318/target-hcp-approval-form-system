@@ -241,3 +241,19 @@ model OperationLog {
   @@index([operation])
   @@index([tokenHash])
 }
+
+// 节点审批人配置（可按流程类型 + 节点角色指定人员，支持企业邮箱）
+model ApproverConfig {
+  id           String        @id @default(cuid())
+  workflowType WorkflowType
+  role         UserRole
+  email        String
+  name         String?
+  actorCode    String?
+  enabled      Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([workflowType, role])
+  @@index([email])
+}
