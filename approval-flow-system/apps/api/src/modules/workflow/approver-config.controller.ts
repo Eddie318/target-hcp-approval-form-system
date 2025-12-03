@@ -13,8 +13,12 @@ import { ApiTags } from "@nestjs/swagger";
 import { CreateApproverConfigDto } from "./dto/create-approver-config.dto";
 import { UpdateApproverConfigDto } from "./dto/update-approver-config.dto";
 import { IsBooleanString, IsEnum, IsOptional, IsString } from "class-validator";
-import { WorkflowRoleEnum, WorkflowTypeEnum } from "./workflow.constants";
-import { WorkflowRole, WorkflowType } from "@prisma/client";
+import {
+  WorkflowRoleEnum,
+  WorkflowTypeEnum,
+  WorkflowRole,
+  WorkflowType,
+} from "./workflow.constants";
 
 class ApproverQueryDto {
   @IsOptional()
