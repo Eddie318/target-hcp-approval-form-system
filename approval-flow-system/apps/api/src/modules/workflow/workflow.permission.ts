@@ -19,6 +19,14 @@ export const WorkflowPermissions: PermissionMap = {
       WorkflowActionEnum.WITHDRAW,
     ],
     [WorkflowRoleEnum.DSM]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
+    ],
+    [WorkflowRoleEnum.RSM]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
+    ],
+    [WorkflowRoleEnum.DSM]: [
       WorkflowActionEnum.APPROVE,
       WorkflowActionEnum.REJECT,
       WorkflowActionEnum.RETURN,
@@ -51,6 +59,14 @@ export const WorkflowPermissions: PermissionMap = {
       WorkflowActionEnum.WITHDRAW,
     ],
     [WorkflowRoleEnum.DSM]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
+    ],
+    [WorkflowRoleEnum.RSM]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
+    ],
+    [WorkflowRoleEnum.DSM]: [
       WorkflowActionEnum.APPROVE,
       WorkflowActionEnum.REJECT,
       WorkflowActionEnum.RETURN,
@@ -75,6 +91,14 @@ export const WorkflowPermissions: PermissionMap = {
   },
   [WorkflowTypeEnum.NEW_LINK_PHARMACY]: {
     [WorkflowRoleEnum.MR]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
+    ],
+    [WorkflowRoleEnum.DSM]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
+    ],
+    [WorkflowRoleEnum.RSM]: [
       WorkflowActionEnum.SUBMIT,
       WorkflowActionEnum.WITHDRAW,
     ],
@@ -111,6 +135,14 @@ export const WorkflowPermissions: PermissionMap = {
       WorkflowActionEnum.WITHDRAW,
     ],
     [WorkflowRoleEnum.DSM]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
+    ],
+    [WorkflowRoleEnum.RSM]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
+    ],
+    [WorkflowRoleEnum.DSM]: [
       WorkflowActionEnum.APPROVE,
       WorkflowActionEnum.REJECT,
       WorkflowActionEnum.RETURN,
@@ -135,6 +167,10 @@ export const WorkflowPermissions: PermissionMap = {
   },
   [WorkflowTypeEnum.REGION_ADJUSTMENT]: {
     [WorkflowRoleEnum.DSM]: [
+      WorkflowActionEnum.SUBMIT,
+      WorkflowActionEnum.WITHDRAW,
+    ],
+    [WorkflowRoleEnum.RSM]: [
       WorkflowActionEnum.SUBMIT,
       WorkflowActionEnum.WITHDRAW,
     ],

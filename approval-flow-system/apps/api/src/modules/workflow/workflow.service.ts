@@ -164,6 +164,17 @@ export class WorkflowService {
         }
       }
 
+      // 只有发起人可提交/撤回
+      if (
+        (dto.action === WorkflowActionEnum.SUBMIT ||
+          dto.action === WorkflowActionEnum.WITHDRAW) &&
+        current.submittedBy &&
+        dto.actorCode &&
+        current.submittedBy !== dto.actorCode
+      ) {
+        throw new BadRequestException("仅发起人可提交/撤回该流程");
+      }
+
       // 当前步骤校验：审批动作必须匹配当前步骤角色
       const steps = current.steps ?? [];
       const currentStep =
