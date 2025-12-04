@@ -326,7 +326,7 @@ function App() {
         <Form
           form={form}
           layout="vertical"
-          style={{ width: "100%" }}
+          style={{ width: "100%", padding: "0 6px" }}
           requiredMarkStyle="asterisk"
         >
           <Form.Item name="institutionName" label="机构名称" rules={[{ required: true, message: "请输入机构名称" }]}>
