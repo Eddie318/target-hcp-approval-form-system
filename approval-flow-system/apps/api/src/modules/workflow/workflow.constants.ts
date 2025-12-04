@@ -17,10 +17,8 @@ export const WorkflowTypeEnum = {
 
 export const WorkflowStatusEnum = {
   DRAFT: "DRAFT",
-  PENDING: "PENDING", // 提交后首节点前
   IN_PROGRESS: "IN_PROGRESS",
   REJECTED: "REJECTED",
-  WITHDRAWN: "WITHDRAWN",
   APPROVED: "APPROVED",
 } as const;
 

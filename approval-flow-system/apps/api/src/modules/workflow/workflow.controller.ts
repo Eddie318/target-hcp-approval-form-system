@@ -76,6 +76,16 @@ export class WorkflowController {
     return this.workflowService.findOne(id, code);
   }
 
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Post(":id/delete")
+  async remove(
+    @Param("id") id: string,
+    @Headers("x-actor-code") actorCode?: string,
+  ) {
+    await this.workflowService.remove(id, actorCode);
+    return;
+  }
+
   @Post(":id/actions")
   @ApiBody({ type: ActionWorkflowDto })
   act(

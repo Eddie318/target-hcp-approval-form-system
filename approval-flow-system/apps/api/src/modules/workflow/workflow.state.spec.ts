@@ -14,9 +14,14 @@ describe("workflow state", () => {
     ).toBe(false);
   });
 
-  it("transitions map should include statuses", () => {
-    expect(Object.keys(WorkflowTransitions)).toContain(
-      WorkflowStatusEnum.PENDING,
+  it("transitions map should include core statuses", () => {
+    expect(Object.keys(WorkflowTransitions)).toEqual(
+      expect.arrayContaining([
+        WorkflowStatusEnum.DRAFT,
+        WorkflowStatusEnum.IN_PROGRESS,
+        WorkflowStatusEnum.REJECTED,
+        WorkflowStatusEnum.APPROVED,
+      ]),
     );
   });
 });

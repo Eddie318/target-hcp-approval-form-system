@@ -24,11 +24,30 @@ export class AuthController {
       where: { email, enabled: true },
     });
     if (mapping) {
+      const hierarchy = await this.prisma.userHierarchy.findFirst({
+        where: { actorCode: mapping.actorCode },
+      });
+      const dsm =
+        hierarchy?.dsmCode &&
+        (await this.prisma.userMapping.findFirst({
+          where: { actorCode: hierarchy.dsmCode },
+        }));
+      const rsm =
+        hierarchy?.rsmCode &&
+        (await this.prisma.userMapping.findFirst({
+          where: { actorCode: hierarchy.rsmCode },
+        }));
       return {
         email,
         actorCode: mapping.actorCode,
         actorRole: mapping.actorRole,
         name: mapping.name,
+        hierarchy: {
+          dsmCode: hierarchy?.dsmCode ?? null,
+          dsmName: typeof dsm === "object" ? dsm?.name ?? null : null,
+          rsmCode: hierarchy?.rsmCode ?? null,
+          rsmName: typeof rsm === "object" ? rsm?.name ?? null : null,
+        },
         source: "userMapping",
         cacheControl: "no-store",
       };

@@ -12,13 +12,13 @@ import {
   WorkflowRoleEnum,
   WorkflowStatusEnum,
   WorkflowType,
+  WorkflowTypeEnum,
 } from "./workflow.constants";
 import { ActionWorkflowDto } from "./dto/action-workflow.dto";
 import { canTransition } from "./workflow.state";
 import { allowedActions } from "./workflow.permission";
 import { PrismaService } from "../../prisma/prisma.service";
 import { getDefaultSteps } from "./workflow.steps";
-import { WorkflowTypeEnum } from "./workflow.constants";
 import { validatePayload } from "./workflow.validation";
 import { WorkflowScopeService } from "./workflow.scope";
 import { ListWorkflowQueryDto } from "./dto/list-workflow.dto";
@@ -46,6 +46,35 @@ export class WorkflowService {
   async create(dto: CreateWorkflowDto) {
     validatePayload(dto.type as any, dto.payload);
     const steps = getDefaultSteps(dto.type as any, dto.payload);
+    // 配置型节点（BISO1/BISO2/RSD/CD）提前读取岗位号作为 assignee，若缺失则尝试用邮箱反查 UserMapping
+    const configRoles: WorkflowRole[] = [
+      WorkflowRoleEnum.BISO1,
+      WorkflowRoleEnum.BISO2,
+      WorkflowRoleEnum.RSD,
+      WorkflowRoleEnum.CD,
+    ] as WorkflowRole[];
+    const approverConfigs = await this.prisma.approverConfig.findMany({
+      where: {
+        workflowType: dto.type as WorkflowType,
+        role: { in: configRoles },
+        enabled: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    const approverMap: Record<string, string | undefined> = {};
+    for (const c of approverConfigs) {
+      if (approverMap[c.role]) continue;
+      if (c.actorCode) {
+        approverMap[c.role] = c.actorCode;
+      } else if (c.email) {
+        const mapping = await this.prisma.userMapping.findFirst({
+          where: { email: c.email, actorRole: c.role as WorkflowRole },
+        });
+        if (mapping?.actorCode) {
+          approverMap[c.role] = mapping.actorCode;
+        }
+      }
+    }
     const payloadHospital = extractHospitalCode(dto.payload);
     if (dto.submittedBy && payloadHospital) {
       await this.scopeService
@@ -93,7 +122,8 @@ export class WorkflowService {
             create: steps.map((s) => ({
               sequence: s.sequence,
               role: s.role as any as WorkflowRole,
-              status: WorkflowStatusEnum.PENDING,
+              status: WorkflowStatusEnum.DRAFT,
+              assignee: approverMap[s.role as string] || null,
             })),
           },
         },
@@ -130,7 +160,6 @@ export class WorkflowService {
           }
           const currentStep =
             wf.steps.find((s) => s.status === WorkflowStatusEnum.IN_PROGRESS) ||
-            wf.steps.find((s) => s.status === WorkflowStatusEnum.PENDING) ||
             null;
           const allowed =
             wf.submittedBy === actorCode ||
@@ -148,6 +177,32 @@ export class WorkflowService {
     dto: ActionWorkflowDto & { type?: WorkflowType; role?: WorkflowRole },
   ) {
     return this.prisma.$transaction(async (tx) => {
+      const getAssigneeForRole = async (
+        workflowType: WorkflowType,
+        role: WorkflowRole,
+      ): Promise<string | null> => {
+        if (
+          role !== WorkflowRoleEnum.BISO1 &&
+          role !== WorkflowRoleEnum.BISO2 &&
+          role !== WorkflowRoleEnum.RSD &&
+          role !== WorkflowRoleEnum.CD
+        ) {
+          return null;
+        }
+        const cfg = await tx.approverConfig.findFirst({
+          where: { workflowType, role, enabled: true },
+          orderBy: { createdAt: "desc" },
+        });
+        if (cfg?.actorCode) return cfg.actorCode;
+        if (cfg?.email) {
+          const mapping = await tx.userMapping.findFirst({
+            where: { email: cfg.email, actorRole: role },
+          });
+          if (mapping?.actorCode) return mapping.actorCode;
+        }
+        return null;
+      };
+
       const current = await tx.workflow.findUnique({
         where: { id },
         include: { steps: { orderBy: { sequence: "asc" } } },
@@ -217,11 +272,7 @@ export class WorkflowService {
       // 当前步骤校验：审批动作必须匹配当前步骤角色
       const steps = current.steps ?? [];
       const currentStep =
-        steps.find(
-          (s) =>
-            s.status === WorkflowStatusEnum.IN_PROGRESS ||
-            s.status === WorkflowStatusEnum.PENDING,
-        ) || null;
+        steps.find((s) => s.status === WorkflowStatusEnum.IN_PROGRESS) || null;
       const approvalActions: WorkflowAction[] = [
         WorkflowActionEnum.APPROVE,
         WorkflowActionEnum.REJECT,
@@ -265,22 +316,6 @@ export class WorkflowService {
         }
       }
 
-      // 针对 C&D 步骤的凭证校验（占位）：若当前步骤为 C&D 且执行 APPROVE，需有附件
-      if (
-        currentStep &&
-        currentStep.role === "CD" &&
-        dto.action === WorkflowActionEnum.APPROVE
-      ) {
-        const attachCount = await tx.attachment.count({
-          where: { workflowId: id },
-        });
-        if (attachCount === 0) {
-          throw new BadRequestException(
-            "C&D 审批需上传凭证（当前未检测到附件）",
-          );
-        }
-      }
-
       let nextStatus: WorkflowStatus = WorkflowStatusEnum.IN_PROGRESS;
       const nextStep = currentStep
         ? steps.find((s) => s.sequence === currentStep.sequence + 1) || null
@@ -295,6 +330,18 @@ export class WorkflowService {
             });
           }
           if (nextStep) {
+            if (!nextStep.assignee) {
+              const nextAssignee = await getAssigneeForRole(
+                current.type,
+                nextStep.role as WorkflowRole,
+              );
+              if (nextAssignee) {
+                await tx.workflowStep.update({
+                  where: { id: nextStep.id },
+                  data: { assignee: nextAssignee },
+                });
+              }
+            }
             await tx.workflowStep.update({
               where: { id: nextStep.id },
               data: { status: WorkflowStatusEnum.IN_PROGRESS },
@@ -316,34 +363,117 @@ export class WorkflowService {
           break;
         }
         case WorkflowActionEnum.RETURN: {
-          if (currentStep) {
-            await tx.workflowStep.update({
-              where: { id: currentStep.id },
-              data: { status: WorkflowStatusEnum.PENDING },
+          // 退回直接打回到草稿：重置步骤，交回发起人
+          if (steps.length) {
+            await tx.workflowStep.updateMany({
+              where: { workflowId: id },
+              data: { status: WorkflowStatusEnum.DRAFT, assignee: null },
             });
           }
-          nextStatus = WorkflowStatusEnum.PENDING;
+          nextStatus = WorkflowStatusEnum.DRAFT;
           break;
         }
         case WorkflowActionEnum.WITHDRAW: {
           if (steps.length) {
             await tx.workflowStep.updateMany({
               where: { workflowId: id },
-              data: { status: WorkflowStatusEnum.PENDING },
+              data: { status: WorkflowStatusEnum.DRAFT },
             });
           }
-          nextStatus = WorkflowStatusEnum.WITHDRAWN;
+          // 撤回后回到草稿态，仅发起人可见，可再次提交或删除
+          nextStatus = WorkflowStatusEnum.DRAFT;
           break;
         }
         case WorkflowActionEnum.SUBMIT: {
+          if (current.type === WorkflowTypeEnum.NEW_TARGET_HOSPITAL) {
+            const attachCount = await tx.attachment.count({
+              where: { workflowId: id },
+            });
+            if (attachCount === 0) {
+              throw new BadRequestException("提交前需上传凭证附件");
+            }
+          }
           const first = steps[0];
           if (first) {
-            await tx.workflowStep.update({
-              where: { id: first.id },
-              data: { status: WorkflowStatusEnum.IN_PROGRESS },
-            });
+            // 提交流程即视为提交人本节点已同意：若提交流程人即首节点角色，则直接跳到下一个节点
+            const sameRoleAsFirst =
+              dto.role && first.role && first.role === dto.role;
+            if (sameRoleAsFirst) {
+              await tx.workflowStep.update({
+                where: { id: first.id },
+                data: { status: WorkflowStatusEnum.APPROVED },
+              });
+              const nextOfFirst =
+                steps.find((s) => s.sequence === first.sequence + 1) || null;
+              if (nextOfFirst) {
+                // 若下一节点是 RSM，补齐 assignee（基于提交人/首节点角色的直属上级）
+                if (nextOfFirst.role === WorkflowRoleEnum.RSM) {
+                  const managerSource = dto.actorCode || first.assignee || "";
+                  if (managerSource) {
+                    const rsm = await this.scopeService.getDirectManager(
+                      WorkflowRoleEnum.DSM,
+                      managerSource,
+                    );
+                    if (rsm) {
+                      await tx.workflowStep.update({
+                        where: { id: nextOfFirst.id },
+                        data: { assignee: rsm },
+                      });
+                    }
+                  }
+                }
+                if (
+                  nextOfFirst.role === WorkflowRoleEnum.BISO1 ||
+                  nextOfFirst.role === WorkflowRoleEnum.BISO2 ||
+                  nextOfFirst.role === WorkflowRoleEnum.RSD ||
+                  nextOfFirst.role === WorkflowRoleEnum.CD
+                ) {
+                  const cfgAssignee = await getAssigneeForRole(
+                    current.type,
+                    nextOfFirst.role as WorkflowRole,
+                  );
+                  if (cfgAssignee) {
+                    await tx.workflowStep.update({
+                      where: { id: nextOfFirst.id },
+                      data: { assignee: cfgAssignee },
+                    });
+                  }
+                }
+                await tx.workflowStep.update({
+                  where: { id: nextOfFirst.id },
+                  data: { status: WorkflowStatusEnum.IN_PROGRESS },
+                });
+                nextStatus = WorkflowStatusEnum.IN_PROGRESS;
+              } else {
+                nextStatus = WorkflowStatusEnum.APPROVED;
+              }
+            } else {
+              await tx.workflowStep.update({
+                where: { id: first.id },
+                data: { status: WorkflowStatusEnum.IN_PROGRESS },
+              });
+              if (
+                first.role === WorkflowRoleEnum.BISO1 ||
+                first.role === WorkflowRoleEnum.BISO2 ||
+                first.role === WorkflowRoleEnum.RSD ||
+                first.role === WorkflowRoleEnum.CD
+              ) {
+                const cfgAssignee = await getAssigneeForRole(
+                  current.type,
+                  first.role as WorkflowRole,
+                );
+                if (cfgAssignee) {
+                  await tx.workflowStep.update({
+                    where: { id: first.id },
+                    data: { assignee: cfgAssignee },
+                  });
+                }
+              }
+              nextStatus = WorkflowStatusEnum.IN_PROGRESS;
+            }
+          } else {
+            nextStatus = WorkflowStatusEnum.IN_PROGRESS;
           }
-          nextStatus = WorkflowStatusEnum.PENDING;
           break;
         }
         default: {
@@ -390,12 +520,7 @@ export class WorkflowService {
             {
               steps: {
                 some: {
-                  status: {
-                    in: [
-                      WorkflowStatusEnum.IN_PROGRESS,
-                      WorkflowStatusEnum.PENDING,
-                    ],
-                  },
+                  status: WorkflowStatusEnum.IN_PROGRESS,
                   assignee: query.actorCode,
                 },
               },
@@ -466,5 +591,28 @@ export class WorkflowService {
         mimeType: dto.mimeType,
       },
     });
+  }
+
+  async remove(id: string, actorCode?: string) {
+    const wf = await this.prisma.workflow.findUnique({
+      where: { id },
+      select: { submittedBy: true, status: true },
+    });
+    if (!wf) {
+      throw new NotFoundException(`Workflow ${id} not found`);
+    }
+    if (!actorCode || wf.submittedBy !== actorCode) {
+      throw new BadRequestException("仅发起人可删除草稿/撤回流程");
+    }
+    if (wf.status !== WorkflowStatusEnum.DRAFT) {
+      throw new BadRequestException("仅 DRAFT 状态支持删除");
+    }
+    await this.prisma.workflow.delete({ where: { id } });
+    await this.audit.log("DELETE_WORKFLOW", {
+      workflowId: id,
+      actorCode,
+      data: {},
+    });
+    return;
   }
 }

@@ -21,7 +21,8 @@ export const WorkflowChains: Record<WorkflowTypeValue, StepDef[]> = {
     { sequence: 2, role: WorkflowRoleEnum.RSM },
     { sequence: 3, role: WorkflowRoleEnum.BISO1 },
     { sequence: 4, role: WorkflowRoleEnum.BISO2 },
-    { sequence: 5, role: WorkflowRoleEnum.RSD },
+    { sequence: 5, role: WorkflowRoleEnum.CD },
+    { sequence: 6, role: WorkflowRoleEnum.RSD },
   ],
   [WorkflowTypeEnum.CANCEL_TARGET_HOSPITAL]: [
     { sequence: 1, role: WorkflowRoleEnum.DSM },

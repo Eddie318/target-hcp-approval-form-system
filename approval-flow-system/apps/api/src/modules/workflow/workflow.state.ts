@@ -11,12 +11,6 @@ export const WorkflowTransitions: Record<WorkflowStatus, WorkflowAction[]> = {
     WorkflowActionEnum.SUBMIT,
     WorkflowActionEnum.WITHDRAW,
   ],
-  [WorkflowStatusEnum.PENDING]: [
-    WorkflowActionEnum.APPROVE,
-    WorkflowActionEnum.REJECT,
-    WorkflowActionEnum.RETURN,
-    WorkflowActionEnum.WITHDRAW,
-  ],
   [WorkflowStatusEnum.IN_PROGRESS]: [
     WorkflowActionEnum.APPROVE,
     WorkflowActionEnum.REJECT,
@@ -24,7 +18,6 @@ export const WorkflowTransitions: Record<WorkflowStatus, WorkflowAction[]> = {
     WorkflowActionEnum.WITHDRAW,
   ],
   [WorkflowStatusEnum.REJECTED]: [],
-  [WorkflowStatusEnum.WITHDRAWN]: [],
   [WorkflowStatusEnum.APPROVED]: [],
 };
 

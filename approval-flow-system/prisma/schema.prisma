@@ -29,10 +29,8 @@ enum WorkflowType {
 
 enum WorkflowStatus {
   DRAFT
-  PENDING
   IN_PROGRESS
   REJECTED
-  WITHDRAWN
   APPROVED
 }
 
@@ -167,7 +165,7 @@ model WorkflowStep {
   sequence    Int
   role        UserRole
   assignee    String?        // 岗位号
-  status      WorkflowStatus @default(PENDING)
+  status      WorkflowStatus @default(DRAFT)
   startedAt   DateTime?
   completedAt DateTime?
   createdAt   DateTime       @default(now())
