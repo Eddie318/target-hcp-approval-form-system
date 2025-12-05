@@ -551,47 +551,17 @@ function App() {
                 "--placeholder-color": "#999",
               } as any}
             />
-            <Space justify="between" block style={{ marginBottom: 12 }}>
-              <Button
-                size="small"
-                onClick={() => setShowStatusPopup(true)}
-                style={{
-                  background: "#fff",
-                  color: "#666",
-                  border: "1px solid #ddd",
-                  borderRadius: 6,
-                  height: 32,
-                }}
-              >
-                审批状态{statusFilter.length ? `(${statusFilter.length})` : ""}
-              </Button>
-              <Button
-                size="small"
-                onClick={() => setShowTypePopup(true)}
-                style={{
-                  background: "#fff",
-                  color: "#666",
-                  border: "1px solid #ddd",
-                  borderRadius: 6,
-                  height: 32,
-                }}
-              >
-                审批类型{typeFilter.length ? `(${typeFilter.length})` : ""}
-              </Button>
-              <Button
-                size="small"
-                onClick={() => setShowTimePopup(true)}
-                style={{
-                  background: "#fff",
-                  color: "#666",
-                  border: "1px solid #ddd",
-                  borderRadius: 6,
-                  height: 32,
-                }}
-              >
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: 14, color: "#666" }}>
+              <span style={{ padding: "4px 0" }} onClick={() => setShowStatusPopup(true)}>
+                审批状态
+              </span>
+              <span style={{ padding: "4px 0" }} onClick={() => setShowTypePopup(true)}>
+                审批类型
+              </span>
+              <span style={{ padding: "4px 0" }} onClick={() => setShowTimePopup(true)}>
                 提交时间
-              </Button>
-            </Space>
+              </span>
+            </div>
 
             {filteredSubmitted.length === 0 && (
               <div style={{ textAlign: "center", color: "#999" }}>暂无已提交</div>
