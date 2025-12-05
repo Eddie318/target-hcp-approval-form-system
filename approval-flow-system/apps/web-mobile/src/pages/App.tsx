@@ -11,7 +11,6 @@ import {
   Toast,
   Space,
   Tag,
-  Selector,
   SearchBar,
   Popup,
   CheckList,
@@ -86,6 +85,8 @@ function App() {
   const [showStatusPopup, setShowStatusPopup] = useState(false);
   const [selectedDateField, setSelectedDateField] = useState<"start" | "end">("start");
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showRepPopup, setShowRepPopup] = useState(false);
+  const [repSearch, setRepSearch] = useState("");
 
   const title = useMemo(() => {
     if (tab === "workbench") return currentFlow ? flowTitleMap[currentFlow] || "发起申请" : "发起申请";
@@ -331,9 +332,9 @@ function App() {
         <div
           style={{
             position: "absolute",
-            left: 6,
-            top: 10,
-            bottom: 10,
+            left: 10,
+            top: 0,
+            bottom: 0,
             width: 2,
             borderLeft: "2px dashed #d9d9d9",
           }}
@@ -397,15 +398,11 @@ function App() {
             <Input placeholder="请输入机构地址" style={{ "--text-align": "left" } as any} />
           </Form.Item>
           <Form.Item name="repName" label="指派代表姓名" rules={[{ required: true, message: "请选择指派代表" }]}>
-            <Selector
-              options={repOptions.map((r) => ({ label: r.label, value: r.value }))}
-              onChange={(val) => {
-                const rep = repOptions.find((r) => r.value === val[0]);
-                if (rep) {
-                  form.setFieldsValue({ repCode: rep.code, repName: rep.label });
-                }
-              }}
-              columns={1}
+            <Input
+              placeholder="点击选择代表"
+              readOnly
+              onClick={() => setShowRepPopup(true)}
+              style={{ "--text-align": "left" } as any}
             />
           </Form.Item>
           <Form.Item name="repCode" label="指派代表岗位号" rules={[{ required: true, message: "自动带出岗位号" }]}>
@@ -644,6 +641,44 @@ function App() {
           ))}
         </TabBar>
       )}
+
+      <Popup
+        visible={showRepPopup}
+        onMaskClick={() => setShowRepPopup(false)}
+        bodyStyle={{ padding: 16 }}
+      >
+        <Space direction="vertical" block style={{ width: "100%" }}>
+          <SearchBar
+            placeholder="搜索代表姓名/岗位号"
+            value={repSearch}
+            onChange={setRepSearch}
+          />
+          <div style={{ maxHeight: "50vh", overflow: "auto" }}>
+            {repOptions
+              .filter((r) =>
+                repSearch.trim()
+                  ? `${r.label}${r.code}`.toLowerCase().includes(repSearch.trim().toLowerCase())
+                  : true,
+              )
+              .map((r) => (
+                <div
+                  key={r.value}
+                  style={{
+                    padding: "10px 0",
+                    borderBottom: "1px solid #f0f0f0",
+                  }}
+                  onClick={() => {
+                    form.setFieldsValue({ repCode: r.code, repName: r.label });
+                    setShowRepPopup(false);
+                  }}
+                >
+                  {r.label}（{r.code}）
+                </div>
+              ))}
+          </div>
+          <Button onClick={() => setShowRepPopup(false)}>关闭</Button>
+        </Space>
+      </Popup>
     </div>
   );
 }
