@@ -311,6 +311,67 @@ function App() {
     return lastReject?.comment || "";
   };
 
+  const resolveActiveRole = (wf?: any) => {
+    if (!wf) return approveFlowRoles[0];
+    const steps = wf.steps || [];
+    const inProgress = steps.find((s: any) => s.status === "IN_PROGRESS");
+    if (inProgress) return inProgress.role;
+    const lastApproved = [...steps].reverse().find((s: any) => s.status === "APPROVED");
+    if (lastApproved) {
+      const idx = approveFlowRoles.indexOf(lastApproved.role);
+      if (idx >= 0 && idx + 1 < approveFlowRoles.length) return approveFlowRoles[idx + 1];
+    }
+    return approveFlowRoles[0];
+  };
+
+  const renderTimeline = (activeRole: string) => {
+    const activeIndex = approveFlowRoles.indexOf(activeRole);
+    return (
+      <div style={{ position: "relative", paddingLeft: 18 }}>
+        <div
+          style={{
+            position: "absolute",
+            left: 6,
+            top: 10,
+            bottom: 10,
+            width: 2,
+            background: "#e5e6eb",
+          }}
+        />
+        <Space direction="vertical" style={{ width: "100%" }}>
+          {approveFlowRoles.map((role, idx) => {
+            const isCurrent = idx === activeIndex;
+            const isDone = idx < activeIndex;
+            const color = isCurrent ? "#1677ff" : isDone ? "#52c41a" : "#d9d9d9";
+            let name = approverMap[role]?.name || "占位";
+            if (role === "MR") name = actorName || name;
+            if (role === "DSM") name = dsmName || name;
+            if (role === "RSM") name = rsmName || name;
+            return (
+              <div key={role} style={{ display: "flex", alignItems: "center" }}>
+                <span
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: "50%",
+                    background: isDone || isCurrent ? color : "#fff",
+                    border: `2px solid ${color}`,
+                    marginRight: 8,
+                    position: "relative",
+                    zIndex: 1,
+                  }}
+                />
+                <div style={{ padding: "10px 0", borderBottom: "1px solid #f0f0f0", flex: 1 }}>
+                  {role}：{name}
+                </div>
+              </div>
+            );
+          })}
+        </Space>
+      </div>
+    );
+  };
+
   const renderFlowForm = () => {
     if (currentFlow !== "NEW_TARGET_HOSPITAL") {
       return (
@@ -326,7 +387,7 @@ function App() {
         <Form
           form={form}
           layout="vertical"
-          style={{ width: "100%", padding: "0 6px" }}
+          style={{ width: "100%" }}
           requiredMarkStyle="asterisk"
         >
           <Form.Item name="institutionName" label="机构名称" rules={[{ required: true, message: "请输入机构名称" }]}>
@@ -370,26 +431,7 @@ function App() {
 
         <div style={{ marginTop: 12, marginBottom: 80 }}>
           <div style={{ fontWeight: 600, marginBottom: 8 }}>审批流程</div>
-          <Space direction="vertical" style={{ width: "100%" }}>
-            {approveFlowRoles.map((role) => {
-              let name = approverMap[role]?.name || "占位";
-              if (role === "MR") name = actorName || "占位";
-              if (role === "DSM") name = dsmName || "占位";
-              if (role === "RSM") name = rsmName || "占位";
-              return (
-                <div
-                  key={role}
-                  style={{
-                    padding: "12px 0",
-                    borderBottom: "1px solid #f0f0f0",
-                    width: "100%",
-                  }}
-                >
-                  {role}：{name}
-                </div>
-              );
-            })}
-          </Space>
+          {renderTimeline(approveFlowRoles[0])}
         </div>
 
         <div
