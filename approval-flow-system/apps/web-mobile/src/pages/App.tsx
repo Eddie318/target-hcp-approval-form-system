@@ -335,14 +335,14 @@ function App() {
             top: 10,
             bottom: 10,
             width: 2,
-            background: "#e5e6eb",
+            borderLeft: "2px dashed #d9d9d9",
           }}
         />
         <Space direction="vertical" style={{ width: "100%" }}>
           {approveFlowRoles.map((role, idx) => {
             const isCurrent = idx === activeIndex;
             const isDone = idx < activeIndex;
-            const color = isCurrent ? "#1677ff" : isDone ? "#52c41a" : "#d9d9d9";
+            const color = isCurrent ? "#f7c643" : isDone ? "#52c41a" : "#d9d9d9";
             let name = approverMap[role]?.name || "占位";
             if (role === "MR") name = actorName || name;
             if (role === "DSM") name = dsmName || name;
