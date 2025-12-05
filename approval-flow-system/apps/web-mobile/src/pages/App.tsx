@@ -258,16 +258,29 @@ function App() {
     const text = searchText.trim();
     const matchText = (wf: any) => {
       if (!text) return true;
-      const p = wf.payload || {};
-      const names: string[] = [
-        p.repName,
-        p.institutionName,
-        p.institutionAddress,
-        wf.title,
-      ].filter(Boolean);
-      const stepsNames =
-        (wf.steps || []).map((s: any) => s.assigneeName || s.assignee || "").filter(Boolean) || [];
-      return [...names, ...stepsNames].some((n) => `${n}`.includes(text));
+      const lower = text.toLowerCase();
+      const payload = wf.payload || {};
+      const files = wf.files || [];
+      const actions = wf.actions || [];
+      const steps = wf.steps || [];
+      const fields: string[] = [];
+      const collect = (v: any) => {
+        if (v === undefined || v === null) return;
+        if (typeof v === "object") {
+          Object.values(v).forEach(collect);
+        } else {
+          fields.push(String(v));
+        }
+      };
+      collect(payload);
+      steps.forEach((s: any) => collect(s.assigneeName || s.assignee));
+      files.forEach((f: any) => {
+        collect(f.filename);
+        collect(f.url);
+      });
+      actions.forEach((a: any) => collect(a.comment));
+      collect(wf.title);
+      return fields.some((f) => f.toLowerCase().includes(lower));
     };
     const matchType = (wfType: FlowType) =>
       typeFilter.length === 0 ? true : typeFilter.includes(wfType);
