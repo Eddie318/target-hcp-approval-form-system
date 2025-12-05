@@ -538,32 +538,30 @@ function App() {
       <div className="content">
         {tab === "workbench" && renderWorkbench()}
         {tab === "submitted" && (
-          <div style={{ padding: 12, maxWidth: 430, margin: "0 auto" }}>
+          <div style={{ padding: 16, width: "100%", boxSizing: "border-box", background: "#f6f7fa" }}>
             <SearchBar
-              placeholder="请输入机构名称或人员姓名"
+              placeholder="搜索人名、标题、内容"
               value={searchText}
               onChange={setSearchText}
-              style={{ marginBottom: 8 }}
+              style={{ marginBottom: 12, "--border-radius": "12px", "--background": "#f0f2f5" } as any}
             />
-            <Space justify="between" block style={{ marginBottom: 8 }}>
-              <Button size="small" onClick={() => setShowStatusPopup(true)}>
+            <Space justify="between" block style={{ marginBottom: 12 }}>
+              <Button size="small" onClick={() => setShowStatusPopup(true)} fill="outline">
                 审批状态{statusFilter.length ? `(${statusFilter.length})` : ""}
               </Button>
-              <Button size="small" onClick={() => setShowTypePopup(true)}>
+              <Button size="small" onClick={() => setShowTypePopup(true)} fill="outline">
                 审批类型{typeFilter.length ? `(${typeFilter.length})` : ""}
               </Button>
-              <Button size="small" onClick={() => setShowTimePopup(true)}>
+              <Button size="small" onClick={() => setShowTimePopup(true)} fill="outline">
                 提交时间
               </Button>
             </Space>
 
             {filteredSubmitted.length === 0 && (
-              <Card>
-                <div style={{ textAlign: "center", color: "#999" }}>暂无已提交</div>
-              </Card>
+              <div style={{ textAlign: "center", color: "#999" }}>暂无已提交</div>
             )}
 
-            <Space direction="vertical" block>
+            <Space direction="vertical" block style={{ width: "100%" }}>
               {filteredSubmitted.map((wf: any) => {
                 const p = wf.payload || {};
                 const created = wf.createdAt
@@ -572,36 +570,36 @@ function App() {
                 const cur = currentStepInfo(wf);
                 const rej = rejectReason(wf);
                 return (
-                  <Card
+                  <div
                     key={wf.id}
-                    title={
-                      <Space>
-                        <span>新增目标医院</span>
-                        {statusTag(wf.status)}
-                      </Space>
-                    }
-                    extra={created}
+                    style={{
+                      background: "#fff",
+                      borderRadius: 12,
+                      padding: 12,
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                    }}
                   >
-                    <div style={{ marginBottom: 6, color: "#1d2129" }}>
-                      机构名称：{p.institutionName || "-"}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: "#1d2129" }}>新增目标医院</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {statusTag(wf.status)}
+                        <span style={{ color: "#999", fontSize: 12 }}>{created}</span>
+                      </div>
                     </div>
-                    <div style={{ marginBottom: 6, color: "#1d2129" }}>
-                      机构地址：{p.institutionAddress || "-"}
-                    </div>
-                    <div style={{ marginBottom: 12, color: "#1d2129" }}>
-                      指派代表姓名：{p.repName || "-"}
-                    </div>
+                    <div style={{ color: "#1d2129", marginBottom: 4 }}>机构名称：{p.institutionName || "-"}</div>
+                    <div style={{ color: "#1d2129", marginBottom: 4 }}>机构地址：{p.institutionAddress || "-"}</div>
+                    <div style={{ color: "#1d2129", marginBottom: 8 }}>指派代表姓名：{p.repName || "-"}</div>
                     {wf.status === "IN_PROGRESS" && (
-                      <div style={{ marginBottom: 8, color: "#1d2129" }}>
+                      <div style={{ color: "#1d2129", marginBottom: 4 }}>
                         当前节点：{cur.role || "-"}，审批人：{cur.name || "占位"}
                       </div>
                     )}
                     {wf.status === "REJECTED" && (
-                      <div style={{ marginBottom: 8, color: "#e5484d" }}>
+                      <div style={{ color: "#e5484d", marginBottom: 4 }}>
                         驳回原因：{rej || "未填写"}
                       </div>
                     )}
-                  </Card>
+                  </div>
                 );
               })}
             </Space>
@@ -630,6 +628,77 @@ function App() {
                     color="primary"
                     onClick={() => setShowStatusPopup(false)}
                   >
+                    确认
+                  </Button>
+                </Space>
+              </Card>
+            </Popup>
+
+            <Popup visible={showTypePopup} onMaskClick={() => setShowTypePopup(false)}>
+              <Card title="审批类型">
+                <CheckList
+                  multiple
+                  value={typeFilter}
+                  onChange={(val) => setTypeFilter(val as FlowType[])}
+                >
+                  {flowCards.map((f) => (
+                    <CheckList.Item key={f.type} value={f.type}>
+                      {f.title}
+                    </CheckList.Item>
+                  ))}
+                </CheckList>
+                <Space justify="end" style={{ marginTop: 8 }}>
+                  <Button size="small" onClick={() => setTypeFilter([])}>
+                    重置
+                  </Button>
+                  <Button size="small" color="primary" onClick={() => setShowTypePopup(false)}>
+                    确认
+                  </Button>
+                </Space>
+              </Card>
+            </Popup>
+
+            <Popup visible={showTimePopup} onMaskClick={() => setShowTimePopup(false)}>
+              <Card title="提交时间">
+                <CheckList
+                  value={[timeFilter]}
+                  onChange={(val) => {
+                    const picked = (val as any)[0] as typeof timeFilter;
+                    setTimeFilter(picked);
+                    if (picked !== "custom") setCustomRange({});
+                  }}
+                >
+                  <CheckList.Item value="7">近7日</CheckList.Item>
+                  <CheckList.Item value="30">近30日</CheckList.Item>
+                  <CheckList.Item value="90">近90日</CheckList.Item>
+                  <CheckList.Item value="all">全部</CheckList.Item>
+                  <CheckList.Item value="custom">自定义区间</CheckList.Item>
+                </CheckList>
+                {timeFilter === "custom" && (
+                  <DatePicker
+                    title="选择日期"
+                    visible
+                    onClose={() => {}}
+                    onConfirm={(val) => {
+                      if (!customRange.start) {
+                        setCustomRange({ start: val });
+                      } else {
+                        setCustomRange((prev) => ({ ...prev, end: val }));
+                      }
+                    }}
+                  />
+                )}
+                <Space justify="end" style={{ marginTop: 8 }}>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setTimeFilter("all");
+                      setCustomRange({});
+                    }}
+                  >
+                    重置
+                  </Button>
+                  <Button size="small" color="primary" onClick={() => setShowTimePopup(false)}>
                     确认
                   </Button>
                 </Space>
