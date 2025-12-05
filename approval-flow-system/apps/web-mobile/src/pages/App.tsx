@@ -544,16 +544,51 @@ function App() {
               placeholder="搜索人名、标题、内容"
               value={searchText}
               onChange={setSearchText}
-              style={{ marginBottom: 10, "--border-radius": "10px", "--background": "#f0f2f5" } as any}
+              style={{
+                marginBottom: 10,
+                "--border-radius": "12px",
+                "--background": "#ffffff",
+                "--placeholder-color": "#999",
+              } as any}
             />
             <Space justify="between" block style={{ marginBottom: 12 }}>
-              <Button size="small" onClick={() => setShowStatusPopup(true)} fill="outline">
+              <Button
+                size="small"
+                onClick={() => setShowStatusPopup(true)}
+                style={{
+                  background: "#fff",
+                  color: "#666",
+                  border: "1px solid #ddd",
+                  borderRadius: 6,
+                  height: 32,
+                }}
+              >
                 审批状态{statusFilter.length ? `(${statusFilter.length})` : ""}
               </Button>
-              <Button size="small" onClick={() => setShowTypePopup(true)} fill="outline">
+              <Button
+                size="small"
+                onClick={() => setShowTypePopup(true)}
+                style={{
+                  background: "#fff",
+                  color: "#666",
+                  border: "1px solid #ddd",
+                  borderRadius: 6,
+                  height: 32,
+                }}
+              >
                 审批类型{typeFilter.length ? `(${typeFilter.length})` : ""}
               </Button>
-              <Button size="small" onClick={() => setShowTimePopup(true)} fill="outline">
+              <Button
+                size="small"
+                onClick={() => setShowTimePopup(true)}
+                style={{
+                  background: "#fff",
+                  color: "#666",
+                  border: "1px solid #ddd",
+                  borderRadius: 6,
+                  height: 32,
+                }}
+              >
                 提交时间
               </Button>
             </Space>
@@ -575,9 +610,10 @@ function App() {
                     key={wf.id}
                     style={{
                       background: "#fff",
-                      borderRadius: 8,
+                      borderRadius: 0,
                       padding: 12,
-                      boxShadow: "0 0.5px 2px rgba(0,0,0,0.05)",
+                      boxShadow: "none",
+                      borderTop: "1px solid #f0f0f0",
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
