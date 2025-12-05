@@ -3,7 +3,6 @@ import {
   NavBar,
   TabBar,
   Grid,
-  Card,
   Form,
   Input,
   TextArea,
@@ -15,6 +14,7 @@ import {
   Popup,
   CheckList,
   DatePicker,
+  Card,
 } from "antd-mobile";
 import {
   AddSquareOutline,
@@ -85,6 +85,7 @@ function App() {
   const [showStatusPopup, setShowStatusPopup] = useState(false);
   const [selectedDateField, setSelectedDateField] = useState<"start" | "end">("start");
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showDatePickerFor, setShowDatePickerFor] = useState<"start" | "end">("start");
   const [showRepPopup, setShowRepPopup] = useState(false);
   const [repSearch, setRepSearch] = useState("");
 
@@ -538,12 +539,12 @@ function App() {
       <div className="content">
         {tab === "workbench" && renderWorkbench()}
         {tab === "submitted" && (
-          <div style={{ padding: 16, width: "100%", boxSizing: "border-box", background: "#f6f7fa" }}>
+          <div style={{ padding: 12, width: "100%", boxSizing: "border-box", background: "#f5f6f8" }}>
             <SearchBar
               placeholder="搜索人名、标题、内容"
               value={searchText}
               onChange={setSearchText}
-              style={{ marginBottom: 12, "--border-radius": "12px", "--background": "#f0f2f5" } as any}
+              style={{ marginBottom: 10, "--border-radius": "10px", "--background": "#f0f2f5" } as any}
             />
             <Space justify="between" block style={{ marginBottom: 12 }}>
               <Button size="small" onClick={() => setShowStatusPopup(true)} fill="outline">
@@ -574,28 +575,28 @@ function App() {
                     key={wf.id}
                     style={{
                       background: "#fff",
-                      borderRadius: 12,
+                      borderRadius: 8,
                       padding: 12,
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+                      boxShadow: "0 0.5px 2px rgba(0,0,0,0.05)",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                       <div style={{ fontSize: 16, fontWeight: 600, color: "#1d2129" }}>新增目标医院</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         {statusTag(wf.status)}
                         <span style={{ color: "#999", fontSize: 12 }}>{created}</span>
                       </div>
                     </div>
-                    <div style={{ color: "#1d2129", marginBottom: 4 }}>机构名称：{p.institutionName || "-"}</div>
-                    <div style={{ color: "#1d2129", marginBottom: 4 }}>机构地址：{p.institutionAddress || "-"}</div>
-                    <div style={{ color: "#1d2129", marginBottom: 8 }}>指派代表姓名：{p.repName || "-"}</div>
+                    <div style={{ color: "#1d2129", fontSize: 14, marginBottom: 4 }}>机构名称：{p.institutionName || "-"}</div>
+                    <div style={{ color: "#1d2129", fontSize: 14, marginBottom: 4 }}>机构地址：{p.institutionAddress || "-"}</div>
+                    <div style={{ color: "#1d2129", fontSize: 14, marginBottom: 6 }}>指派代表姓名：{p.repName || "-"}</div>
                     {wf.status === "IN_PROGRESS" && (
-                      <div style={{ color: "#1d2129", marginBottom: 4 }}>
+                      <div style={{ color: "#1d2129", fontSize: 14 }}>
                         当前节点：{cur.role || "-"}，审批人：{cur.name || "占位"}
                       </div>
                     )}
                     {wf.status === "REJECTED" && (
-                      <div style={{ color: "#e5484d", marginBottom: 4 }}>
+                      <div style={{ color: "#e5484d", fontSize: 14 }}>
                         驳回原因：{rej || "未填写"}
                       </div>
                     )}
@@ -675,18 +676,14 @@ function App() {
                   <CheckList.Item value="custom">自定义区间</CheckList.Item>
                 </CheckList>
                 {timeFilter === "custom" && (
-                  <DatePicker
-                    title="选择日期"
-                    visible
-                    onClose={() => {}}
-                    onConfirm={(val) => {
-                      if (!customRange.start) {
-                        setCustomRange({ start: val });
-                      } else {
-                        setCustomRange((prev) => ({ ...prev, end: val }));
-                      }
-                    }}
-                  />
+                  <Space direction="vertical" block style={{ marginTop: 8 }}>
+                    <Button size="small" onClick={() => { setShowDatePickerFor("start"); setShowDatePicker(true); }}>
+                      开始：{customRange.start?.toLocaleDateString?.() || "请选择"}
+                    </Button>
+                    <Button size="small" onClick={() => { setShowDatePickerFor("end"); setShowDatePicker(true); }}>
+                      结束：{customRange.end?.toLocaleDateString?.() || "请选择"}
+                    </Button>
+                  </Space>
                 )}
                 <Space justify="end" style={{ marginTop: 8 }}>
                   <Button
@@ -761,6 +758,20 @@ function App() {
           <Button onClick={() => setShowRepPopup(false)}>关闭</Button>
         </Space>
       </Popup>
+
+      <DatePicker
+        title="选择日期"
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        onConfirm={(val) => {
+          if (showDatePickerFor === "start") {
+            setCustomRange((prev) => ({ ...prev, start: val }));
+          } else {
+            setCustomRange((prev) => ({ ...prev, end: val }));
+          }
+          setShowDatePicker(false);
+        }}
+      />
     </div>
   );
 }
