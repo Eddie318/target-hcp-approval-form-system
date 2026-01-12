@@ -1,71 +1,119 @@
-# 接口契约（与 Mock 对齐）
+# 接口契约（当前前端使用）
 
-## 主数据
-### GET /masterdata/hospitals
-- 字段：`id`、`code`、`name`、`regionCode`、`address`
-- 示例：
+## 1. 登录与用户映射
+### GET /auth/saas-user
+- 说明：代理 SaaS 用户信息（前端带 Bearer token）。
+- Header：`Authorization: Bearer <token>`
+- 返回：SaaS 用户完整信息（包含 email/roles/groups 等字段）。
+
+### POST /auth/resolve-user
+- 说明：根据 email 映射本系统用户（岗位号/角色/大区）。
+- 请求体：
+```json
+{ "email": "someone@neurogen.com.cn" }
+```
+- 返回（示例）：
 ```json
 {
-  "data": [
-    {"id":"H001","code":"H001","name":"Central Hospital","regionCode":"R01","address":"123 Main St"}
-  ]
+  "email": "someone@neurogen.com.cn",
+  "actorCode": "NCNSCXXX",
+  "actorRole": "MR",
+  "name": "张三",
+  "region": "华北",
+  "hierarchy": {
+    "dsmCode": "NCNSC001",
+    "dsmName": "李四",
+    "rsmCode": "NCNSC010",
+    "rsmName": "王五"
+  },
+  "source": "userMapping"
 }
 ```
 
-### GET /masterdata/pharmacies
-- 字段：`id`、`code`、`name`、`regionCode`、`type`
-- 示例：
+### GET /auth/mock-login
+- 说明：本地联调用（非默认入口）。
+- 参数：`email`
+
+## 2. 权限范围与主数据
+### GET /hospitals/scope
+- Header：`x-actor-code`
+- 返回：权限内医院列表
+```json
+[
+  {
+    "code": "N-H001230",
+    "name": "南京市第一医院",
+    "region": "华东",
+    "province": "江苏",
+    "city": "南京",
+    "salesType": "医院",
+    "mrCode": "NCNSC001",
+    "mrName": "张三"
+  }
+]
+```
+
+### GET /pharmacies/scope
+- Header：`x-actor-code`
+- Query：`source=whitelist|assignment|new-link`，`q=关键词`
+- 返回：药店+关联医院列表
+```json
+[
+  {
+    "pharmacyCode": "N-R00192",
+    "pharmacyDisplayCode": "N-R00192",
+    "pharmacyName": "江苏益丰大药房…",
+    "hospitalCode": "N-H001230",
+    "hospitalName": "南京市第一医院"
+  }
+]
+```
+
+### GET /whitelist/pharmacies
+- Query：`q`、`page`、`pageSize`
+- 返回：
 ```json
 {
-  "data": [
-    {"id":"P001","code":"P001","name":"Pharmacy One","regionCode":"R01","type":"A"}
-  ]
+  "data": [{ "code": "N-R00192", "name": "药店名称", "pharmacyType": "关联" }],
+  "total": 120,
+  "page": 1,
+  "pageSize": 20
 }
 ```
 
-### GET /masterdata/representatives
-- 字段：`id`、`name`、`role`、`regionCode`
-- 示例：
+## 3. 流程
+### GET /workflows
+- Header：`x-actor-code`
+- Query：`type`、`status`、`actorCode`
+- 返回：流程列表（含 steps、attachments、payload）。
+
+### GET /workflows/:id
+- Header：`x-actor-code`
+- 返回：流程详情（含 steps、actions、attachments、payload）。
+
+### POST /workflows
+- Header：`x-actor-code`、`x-actor-role`（可选）
+- 请求体（核心字段）：
 ```json
 {
-  "data": [
-    {"id":"MR01","name":"Alice","role":"MR","regionCode":"R01"}
-  ]
+  "type": "NEW_TARGET_HOSPITAL",
+  "title": "新增理由",
+  "payload": { "hospitalCode": "N-H001230", "...": "..." },
+  "submittedByName": "张三",
+  "submittedByRole": "MR"
 }
 ```
 
-### GET /masterdata/regions
-- 字段：`code`、`name`
-- 示例：
+### POST /workflows/:id/actions
+- Header：`x-actor-code`、`x-actor-role`
+- 请求体：
 ```json
-{
-  "data": [
-    {"code":"R01","name":"North"}
-  ]
-}
+{ "action": "APPROVE", "role": "BISO1", "comment": "同意", "stepId": "..." }
 ```
 
-## 指标（弱校验用）
-### GET /metric/hospital-target
-- 字段：`hospitalCode`、`hospitalName`、`availableAmount`、`currency`、`lastUpdated`
-- 示例：
-```json
-{
-  "data": [
-    {"hospitalCode":"H001","hospitalName":"Central Hospital","availableAmount":100000,"currency":"CNY","lastUpdated":"2024-01-01T00:00:00.000Z"}
-  ]
-}
-```
+### POST /workflows/:id/delete
+- 说明：删除草稿（`DRAFT`）。
 
-## 通知
-### POST /notify/approval
-- 请求体字段：`processId`、`status`、`actionBy`、`comment?`
-- 响应：
-```json
-{ "code": 0, "message": "ok" }
-```
-
-## 错误码格式（通用）
-```json
-{ "code": 40001, "message": "invalid parameter" }
-```
+### GET /workflows/export
+- Query：`format=csv|xlsx`、`multiSheet=true|false`
+- 说明：Excel 导出 5 个 Sheet（新增目标医院/取消目标医院/新增关联药房/取消关联药房/医院区域调整）。
